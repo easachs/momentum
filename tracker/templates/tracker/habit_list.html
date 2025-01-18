@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h1>Your Habits</h1>
+<ul>
+  {% for habit in object_list %}
+  <li>
+    <a href="{% url 'tracker:habit_detail' habit.pk %}">{{ habit.name }}</a>
+    - <strong>Category:</strong> {{ habit.get_category_display }}
+  </li>
+  {% endfor %}
+</ul>
+<a href="{% url 'tracker:habit_create' %}">Add New Habit</a>
+{% endblock %}

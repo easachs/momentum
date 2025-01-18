@@ -1,0 +1,10 @@
+{% block content %}
+<h1>{{ object.name }}</h1>
+<p><strong>Description:</strong> {{ object.description }}</p>
+<p><strong>Frequency:</strong> {{ object.frequency }}</p>
+<p><strong>Category:</strong> {{ object.get_category_display }}</p>
+
+<a href="{% url 'tracker:habit_update' object.pk %}">Edit</a>
+<a href="{% url 'tracker:habit_delete' object.pk %}">Delete</a>
+<a href="{% url 'tracker:habit_list' %}">Back to List</a>
+{% endblock %}
