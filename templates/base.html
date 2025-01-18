@@ -9,7 +9,37 @@
     {% tailwind_css %}
 </head>
 <body class="bg-gray-50 font-serif leading-normal tracking-normal">
+    <nav class="bg-white shadow-lg">
+        <div class="container mx-auto px-4">
+            <div class="flex justify-between items-center py-4">
+                <a href="{% url 'tracker:habit_list' %}" class="text-xl font-bold">Momentum</a>
+                <div class="space-x-4">
+                    {% if user.is_authenticated %}
+                        <span class="text-gray-600">{{ user.email }}</span>
+                        <a href="{% url 'account_logout' %}" 
+                           class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
+                            Logout
+                        </a>
+                    {% else %}
+                        <a href="{% url 'google_login' %}" 
+                           class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                            Login with Google
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </nav>
     <main class="container mx-auto px-4">
+        {% if messages %}
+        <div class="mt-4">
+            {% for message in messages %}
+            <div class="p-4 {% if message.tags == 'error' %}bg-red-100 text-red-700{% else %}bg-green-100 text-green-700{% endif %} rounded">
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
         {% block content %}
         {% endblock %}
     </main>
