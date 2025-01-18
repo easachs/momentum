@@ -1,14 +1,17 @@
+{% load static tailwind_tags %}
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <title>{% block title %}Momentum{% endblock %}</title>
-    {% load static %}
-    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    {% tailwind_css %}
 </head>
-<body>
-    <main>
+<body class="bg-gray-50 font-serif leading-normal tracking-normal">
+    <main class="container mx-auto px-4">
         {% block content %}
         {% endblock %}
     </main>
 </body>
-</html> 
+</html>
