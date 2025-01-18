@@ -131,22 +131,28 @@ SITE_ID = 1  # Required for django-allauth
 
 LOGIN_REDIRECT_URL = '/'  # Where to send users after login
 LOGOUT_REDIRECT_URL = '/'  # Where to send users after logout
-LOGIN_URL = '/accounts/google/login/'
+LOGIN_URL = '/accounts/login/'
+ADMIN_LOGIN_URL = '/accounts/login/'  # Make admin use the same login
 
 # Email settings (for development)
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 # django-allauth settings
 ACCOUNT_EMAIL_REQUIRED = True
-ACCOUNT_EMAIL_VERIFICATION = 'none'  # Change to 'mandatory' in production
+ACCOUNT_EMAIL_VERIFICATION = 'none'
 ACCOUNT_AUTHENTICATION_METHOD = 'email'
 ACCOUNT_USERNAME_REQUIRED = False
+
+# Disable regular authentication
+ACCOUNT_ADAPTER = 'allauth.account.adapter.DefaultAccountAdapter'
+SOCIALACCOUNT_ADAPTER = 'momentum.adapters.GoogleOnlyAdapter'
+ACCOUNT_DEFAULT_HTTP_PROTOCOL = 'http'  # Change to 'https' in production
 
 # Force social auth to use email
 SOCIALACCOUNT_AUTO_SIGNUP = True
 SOCIALACCOUNT_EMAIL_REQUIRED = True
 
-# Add your Google OAuth credentials from Google Cloud Console
+# Force direct OAuth
 SOCIALACCOUNT_PROVIDERS = {
     'google': {
         'APP': {
@@ -158,9 +164,16 @@ SOCIALACCOUNT_PROVIDERS = {
             'profile',
             'email',
         ],
+        'AUTH_PARAMS': {
+            'access_type': 'online',
+        }
     }
 }
 
+# Add these settings
+ACCOUNT_DEFAULT_HTTP_PROTOCOL = 'http'  # Change to 'https' in production
+SOCIALACCOUNT_LOGIN_ON_GET = True
+SOCIALACCOUNT_AUTO_SIGNUP = True
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/

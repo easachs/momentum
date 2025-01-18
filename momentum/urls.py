@@ -17,8 +17,17 @@ Including another URLconf
 
 from django.contrib import admin
 from django.urls import include, path
+from allauth.socialaccount.providers.google.views import oauth2_login, oauth2_callback
+from django.shortcuts import redirect
+from django.contrib.auth.decorators import user_passes_test
+
+# Redirect admin login to Google OAuth
+admin.site.login = lambda request, **kwargs: redirect('google_oauth2_login')
 
 urlpatterns = [
+    # Direct Google OAuth URLs
+    path('accounts/google/login/', oauth2_login, name='google_oauth2_login'),
+    path('accounts/google/login/callback/', oauth2_callback, name='google_oauth2_callback'),
     path('accounts/', include('allauth.urls')),
     path('admin/', admin.site.urls),
     path('', include('tracker.urls')),

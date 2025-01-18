@@ -1,6 +1,7 @@
 from django.db import models
 from django.core.validators import MinLengthValidator
 from django.urls import reverse
+from django.contrib.auth import get_user_model
 
 
 class Habit(models.Model):
@@ -10,34 +11,35 @@ class Habit(models.Model):
         ("learning", "Learning"),
     ]
 
+    user = models.ForeignKey(
+        get_user_model(),
+        on_delete=models.CASCADE,
+        related_name='habits',
+        null=False,
+        blank=False
+    )
     name = models.CharField(
         max_length=100,
-        validators=[MinLengthValidator(3)],  # Ensures name has at least 3 characters
-        unique=True,  # Prevents duplicate habit names
+        validators=[MinLengthValidator(3)]  # Ensures name has at least 3 characters
     )  # Similar to Rails `t.string :name`
-    description = models.TextField(
-        blank=True, null=True
-    )  # Similar to Rails `t.text :description`
+    description = models.TextField(blank=True, null=True)
     frequency = models.CharField(
         max_length=10,
         choices=[("daily", "Daily"), ("weekly", "Weekly")],
         default="daily",
-    )  # Like Rails enums with predefined choices
+    )
     category = models.CharField(
         max_length=20,
         choices=CATEGORY_CHOICES,
         default="health",
-    )  # Allows categorization of habits
-    created_at = models.DateTimeField(
-        auto_now_add=True
-    )  # Rails equivalent: `t.timestamps`
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ['name', 'user']  # This ensures name is unique per user
 
     def __str__(self):
-        return self.name  # For better readability in admin or shell
+        return self.name
 
     def get_absolute_url(self):
-        """
-        Defines the default URL to redirect to when referring to this model.
-        Redirects to the detail page for the habit.
-        """
-        return reverse("tracker:habit_detail", args=[self.pk])  # Uses the habit's primary key
+        return reverse("tracker:habit_detail", args=[self.pk])
