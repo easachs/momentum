@@ -2,7 +2,11 @@ from django.urls import reverse_lazy
 from django.views.generic import (CreateView, DeleteView, DetailView, ListView,
                                   UpdateView)
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.shortcuts import redirect
+from django.shortcuts import redirect, get_object_or_404
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
+from django.contrib.auth.decorators import login_required
+from datetime import datetime
 
 from .models import Habit
 
@@ -52,3 +56,13 @@ class HabitDeleteView(LoginRequiredMixin, DeleteView):
 
     def get_queryset(self):
         return Habit.objects.filter(user=self.request.user)
+
+
+@login_required
+def toggle_habit_completion(request, pk):
+    habit = get_object_or_404(Habit, pk=pk, user=request.user)
+    habit.toggle_completion()
+    
+    # Simply redirect back to the previous page
+    referer = request.META.get('HTTP_REFERER')
+    return redirect(referer) if referer else redirect('tracker:habit_detail', pk=pk)

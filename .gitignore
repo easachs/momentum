@@ -34,4 +34,5 @@ media/
 .vscode/
 .idea/
 *.swp
-*.swo 
+*.swo
+.coverage

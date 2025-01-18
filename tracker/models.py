@@ -2,6 +2,7 @@ from django.db import models
 from django.core.validators import MinLengthValidator
 from django.urls import reverse
 from django.contrib.auth import get_user_model
+from django.utils import timezone
 
 
 class Habit(models.Model):
@@ -43,3 +44,32 @@ class Habit(models.Model):
 
     def get_absolute_url(self):
         return reverse('tracker:habit_detail', args=[self.pk])
+
+    def is_completed_for_date(self, date=None):
+        if date is None:
+            date = timezone.now().date()
+        return self.completions.filter(completed_at=date).exists()
+
+    def toggle_completion(self, date=None):
+        if date is None:
+            date = timezone.now().date()
+        completion, created = self.completions.get_or_create(completed_at=date)
+        if not created:
+            completion.delete()
+        return created
+
+
+class HabitCompletion(models.Model):
+    habit = models.ForeignKey(
+        Habit,
+        on_delete=models.CASCADE,
+        related_name='completions'
+    )
+    completed_at = models.DateField()
+    
+    class Meta:
+        unique_together = ['habit', 'completed_at']  # Prevent duplicate completions
+        ordering = ['-completed_at']  # Most recent first
+
+    def __str__(self):
+        return f"{self.habit.name} completed on {self.completed_at}"

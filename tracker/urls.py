@@ -18,4 +18,5 @@ urlpatterns = [
     path(
         "<int:pk>/delete/", views.HabitDeleteView.as_view(), name="habit_delete"
     ),  # Delete habit
+    path('<int:pk>/toggle-completion/', views.toggle_habit_completion, name='habit_completion_toggle'),
 ]

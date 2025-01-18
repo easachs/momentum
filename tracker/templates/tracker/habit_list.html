@@ -6,13 +6,38 @@
     <ul class="space-y-4">
         {% if object_list %}
             {% for habit in object_list %}
-                <li class="bg-white p-4 rounded-lg shadow">
-                    <a href="{% url 'tracker:habit_detail' habit.pk %}" class="text-blue-600 hover:text-blue-800">
-                        {{ habit.name }}
-                    </a>
-                    <span class="ml-2 text-gray-600">
-                        <strong>Category:</strong> {{ habit.get_category_display }}
-                    </span>
+                <li class="bg-white p-4 rounded-lg shadow flex items-center justify-between">
+                    <div class="flex-1">
+                        <a href="{% url 'tracker:habit_detail' habit.pk %}" class="text-blue-600 hover:text-blue-800">
+                            {{ habit.name }}
+                        </a>
+                        <span class="ml-2 text-gray-600">
+                            <strong>Category:</strong> {{ habit.get_category_display }}
+                        </span>
+                    </div>
+                    
+                    <!-- Completion Status and Toggle -->
+                    <div class="flex items-center space-x-4">
+                        <span class="text-sm text-gray-600">
+                            Today's Status:
+                            {% if habit.is_completed_for_date %}
+                                <span class="text-green-600">✓ Done</span>
+                            {% else %}
+                                <span class="text-red-600">○ Not Done</span>
+                            {% endif %}
+                        </span>
+                        <form method="post" action="{% url 'tracker:habit_completion_toggle' habit.pk %}" class="inline">
+                            {% csrf_token %}
+                            <button type="submit" 
+                                    class="{% if habit.is_completed_for_date %}bg-red-500 hover:bg-red-600{% else %}bg-green-500 hover:bg-green-600{% endif %} text-white px-3 py-1 rounded text-sm">
+                                {% if habit.is_completed_for_date %}
+                                    Mark Incomplete
+                                {% else %}
+                                    Mark Complete
+                                {% endif %}
+                            </button>
+                        </form>
+                    </div>
                 </li>
             {% endfor %}
         {% else %}

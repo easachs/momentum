@@ -1,6 +1,6 @@
 import pytest
 from django.core.exceptions import ValidationError
-from tracker.models import Habit
+from tracker.models import Habit, HabitCompletion
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from datetime import timedelta
@@ -157,3 +157,85 @@ class TestHabitModel:
             frequency="daily"
         )
         habit.full_clean()  # Should not raise ValidationError
+
+    def test_habit_completion_methods(self):
+        user = get_user_model().objects.create(email='test@example.com')
+        habit = Habit.objects.create(
+            user=user,
+            name="Exercise",
+            frequency="daily"
+        )
+        
+        # Initially not completed
+        assert not habit.is_completed_for_date()
+        
+        # Toggle to completed
+        assert habit.toggle_completion() == True
+        assert habit.is_completed_for_date()
+        
+        # Toggle back to not completed
+        assert habit.toggle_completion() == False
+        assert not habit.is_completed_for_date()
+
+    def test_habit_completion_unique_per_date(self):
+        user = get_user_model().objects.create(email='test@example.com')
+        habit = Habit.objects.create(
+            user=user,
+            name="Exercise",
+            frequency="daily"
+        )
+        
+        # Complete for today
+        habit.toggle_completion()
+        assert habit.completions.count() == 1
+        
+        # Try to complete again for today
+        habit.toggle_completion()
+        assert habit.completions.count() == 0  # Should be removed
+
+    def test_habit_completion_with_specific_date(self):
+        user = get_user_model().objects.create(email='test@example.com')
+        habit = Habit.objects.create(
+            user=user,
+            name="Exercise",
+            frequency="daily"
+        )
+        
+        # Complete for a specific date
+        specific_date = timezone.now().date() - timedelta(days=1)
+        assert habit.toggle_completion(specific_date) == True
+        assert habit.is_completed_for_date(specific_date)
+        assert not habit.is_completed_for_date()  # Today should still be incomplete
+
+    def test_habit_completion_cascade_delete(self):
+        user = get_user_model().objects.create(email='test@example.com')
+        habit = Habit.objects.create(
+            user=user,
+            name="Exercise",
+            frequency="daily"
+        )
+        
+        # Create some completions
+        habit.toggle_completion()
+        habit.toggle_completion(timezone.now().date() - timedelta(days=1))
+        assert habit.completions.count() == 2
+        
+        # Delete habit should delete completions
+        habit.delete()
+        assert HabitCompletion.objects.count() == 0
+
+    def test_habit_completion_str_representation(self):
+        user = get_user_model().objects.create(email='test@example.com')
+        habit = Habit.objects.create(
+            user=user,
+            name="Exercise",
+            frequency="daily"
+        )
+        
+        completion = HabitCompletion.objects.create(
+            habit=habit,
+            completed_at=timezone.now().date()
+        )
+        
+        expected_str = f"{habit.name} completed on {completion.completed_at}"
+        assert str(completion) == expected_str
