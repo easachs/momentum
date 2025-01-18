@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% load widget_tweaks %}
+
+{% block content %}
+<div class="py-8">
+    <h1 class="text-3xl font-bold mb-6">
+        {% if object %}Edit Habit{% else %}New Habit{% endif %}
+    </h1>
+
+    <form method="post" class="bg-white p-6 rounded-lg shadow">
+        {% csrf_token %}
+        {% for field in form %}
+        <div class="mb-4">
+            <label class="block text-gray-700 text-sm font-bold mb-2" for="{{ field.id_for_label }}">
+                {{ field.label }}
+            </label>
+            {{ field.errors }}
+            {{ field|add_class:"shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" }}
+            {% if field.help_text %}
+            <p class="text-gray-600 text-xs italic">{{ field.help_text }}</p>
+            {% endif %}
+        </div>
+        {% endfor %}
+        
+        <div class="flex space-x-4">
+            <button type="submit" 
+                    class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                Save
+            </button>
+            <a href="{% url 'tracker:habit_list' %}" 
+               class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">
+                Cancel
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}

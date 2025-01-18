@@ -1,6 +1,6 @@
 # Momentum
 
-A Django-based tracking application.
+A Django-based habit tracking application.
 
 ## Setup
 
@@ -8,7 +8,7 @@ A Django-based tracking application.
 2. Create a virtual environment:
    ```bash
    python -m venv env
-   source env/bin/activate  # On Windows use: env\Scripts\activate
+   source env/bin/activate
    ```
 3. Install dependencies:
    ```bash
@@ -16,7 +16,7 @@ A Django-based tracking application.
    ```
 4. Create a .env file with:
    ```
-   DJANGO_SECRET_KEY=your-secret-key-here
+   DJANGO_SECRET_KEY, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
    ```
 5. Run migrations:
    ```bash
@@ -24,7 +24,7 @@ A Django-based tracking application.
    ```
 6. Start the development server:
    ```bash
-   python manage.py runserver
+   honcho start
    ```
 
 ## Development
@@ -35,8 +35,4 @@ A Django-based tracking application.
 
 ## Database
 
-Currently using SQLite for development. To switch to PostgreSQL:
-
-1. Create a PostgreSQL database
-2. Update database settings in settings.py
-3. Run migrations
+Currently using SQLite.
