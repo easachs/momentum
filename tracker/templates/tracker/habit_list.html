@@ -4,16 +4,20 @@
 <div class="py-8">
     <h1 class="text-3xl font-bold mb-6">Your Habits</h1>
     <ul class="space-y-4">
-        {% for habit in object_list %}
-        <li class="bg-white p-4 rounded-lg shadow">
-            <a href="{% url 'tracker:habit_detail' habit.pk %}" class="text-blue-600 hover:text-blue-800">
-                {{ habit.name }}
-            </a>
-            <span class="ml-2 text-gray-600">
-                <strong>Category:</strong> {{ habit.get_category_display }}
-            </span>
-        </li>
-        {% endfor %}
+        {% if object_list %}
+            {% for habit in object_list %}
+                <li class="bg-white p-4 rounded-lg shadow">
+                    <a href="{% url 'tracker:habit_detail' habit.pk %}" class="text-blue-600 hover:text-blue-800">
+                        {{ habit.name }}
+                    </a>
+                    <span class="ml-2 text-gray-600">
+                        <strong>Category:</strong> {{ habit.get_category_display }}
+                    </span>
+                </li>
+            {% endfor %}
+        {% else %}
+            <li class="text-gray-500">No habits yet.</li>
+        {% endif %}
     </ul>
     <a href="{% url 'tracker:habit_create' %}" 
        class="mt-6 inline-block bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">

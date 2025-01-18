@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     "theme",
     "widget_tweaks",
     "tracker",
+    "django_extensions",
 ]
 
 TAILWIND_APP_NAME = "theme"
@@ -142,6 +143,9 @@ ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_EMAIL_VERIFICATION = 'none'
 ACCOUNT_AUTHENTICATION_METHOD = 'email'
 ACCOUNT_USERNAME_REQUIRED = False
+
+# Skip logout confirmation
+ACCOUNT_LOGOUT_ON_GET = True
 
 # Disable regular authentication
 ACCOUNT_ADAPTER = 'allauth.account.adapter.DefaultAccountAdapter'

@@ -42,4 +42,4 @@ class Habit(models.Model):
         return self.name
 
     def get_absolute_url(self):
-        return reverse("tracker:habit_detail", args=[self.pk])
+        return reverse('tracker:habit_detail', args=[self.pk])

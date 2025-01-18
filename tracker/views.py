@@ -10,6 +10,7 @@ from .models import Habit
 class HabitListView(LoginRequiredMixin, ListView):
     model = Habit
     template_name = "tracker/habit_list.html"  # Rails equivalent: index.html.erb
+    context_object_name = 'habits'
 
     def get_queryset(self):
         return Habit.objects.filter(user=self.request.user)
