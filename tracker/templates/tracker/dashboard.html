@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 {% load math_filters %}
 {% load markdown_filters %}
+{% load tracker_tags %}
 
 {% block content %}
 <div class="py-8">
@@ -42,6 +43,15 @@
         {% elif friendship.status == 'pending' %}
             <div class="mb-8 text-center">
                 <p>Friend request pending</p>
+            </div>
+        {% elif friendship.status == 'declined' %}
+            <!-- Show add friend button again if request was declined -->
+            <div class="mb-8 text-center">
+                <p class="mb-4">You need to be friends with {{ viewed_user.username }} to see their habits.</p>
+                <a href="{% url 'social:send_friend_request' viewed_user.username %}"
+                   class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                    Add Friend
+                </a>
             </div>
         {% endif %}
     {% endif %}
@@ -168,6 +178,14 @@
                     </button>
                 </div>
             {% endif %}
+        </div>
+
+        <!-- Badges Section -->
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 class="text-lg font-semibold mb-4">Your Achievements</h2>
+            {% with badges=user|get_user_badges %}
+                {% include 'tracker/badges.html' with badges=badges %}
+            {% endwith %}
         </div>
 
         <!-- Move friends and leaderboard buttons together -->

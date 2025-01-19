@@ -11,18 +11,25 @@ class Friendship(models.Model):
     
     sender = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        related_name='friendship_requests_sent',
+        related_name='sent_friendships',
         on_delete=models.CASCADE
     )
     receiver = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        related_name='friendship_requests_received',
+        related_name='received_friendships',
         on_delete=models.CASCADE
     )
     status = models.CharField(
-        max_length=8,
+        max_length=20,
         choices=STATUS_CHOICES,
         default='pending'
+    )
+    rejected_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        related_name='rejected_friendships',
+        on_delete=models.SET_NULL
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

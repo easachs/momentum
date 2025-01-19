@@ -20,6 +20,7 @@ import logging
 from .models import Habit, HabitCompletion, AIHabitSummary
 from .services.ai_service import AIHabitService
 from tracker.templatetags.markdown_filters import markdown_filter
+from .services.badge_service import BadgeService
 
 logger = logging.getLogger(__name__)
 
@@ -352,6 +353,11 @@ class DashboardView(LoginRequiredMixin, DetailView):
         context = super().get_context_data(**kwargs)
         viewed_user = self.get_object()
         
+        # Only check badges if they haven't been checked recently
+        if self.request.user == viewed_user:
+            # We could add caching here to prevent frequent checks
+            pass
+        
         # Add friendship context if viewing another user's dashboard
         if self.request.user != viewed_user:
             context['friendship'] = Friendship.objects.filter(
@@ -429,3 +435,33 @@ class DashboardView(LoginRequiredMixin, DetailView):
                 'best_streak': best_streak
             }
         }
+
+
+@login_required
+def toggle_completion(request, pk):
+    habit = get_object_or_404(Habit, pk=pk)
+    
+    if habit.user != request.user:
+        messages.error(request, "You can't modify someone else's habits!")
+        return redirect('tracker:habit_list')
+    
+    date_str = request.POST.get('date')
+    if date_str:
+        date = datetime.strptime(date_str, '%Y-%m-%d').date()
+    else:
+        date = timezone.now().date()
+    
+    if habit.is_completed_for_date(date):
+        habit.completions.filter(completed_at=date).delete()
+        messages.success(request, f"Marked {habit.name} as incomplete")
+    else:
+        habit.completions.create(completed_at=date)
+        messages.success(request, f"Marked {habit.name} as complete")
+    
+    # Check all badges after any completion toggle
+    BadgeService(request.user).check_all_badges()
+    
+    if request.headers.get('HX-Request'):
+        return HttpResponse()
+    
+    return redirect(request.META.get('HTTP_REFERER', 'tracker:habit_list'))

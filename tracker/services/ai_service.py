@@ -77,9 +77,10 @@ class AIHabitService:
             prompt += f"  * Completions in last 30 days: {habit['monthly_completions']}\n\n"
         
         prompt += "\nPlease provide:\n"
-        prompt += "1. A brief summary of overall progress\n"
-        prompt += "2. Specific achievements to celebrate\n"
-        prompt += "3. Encouraging suggestions for improvement\n"
-        prompt += "4. A motivational quote or funny quip related to their habits\n"
+        prompt += "A brief summary of overall progress\n"
+        prompt += "Achievements to celebrate\n"
+        prompt += "Suggestions for improvement\n"
+        prompt += "A motivational quote related to their habits\n"
+        prompt += "Avoid clarifying questions or using emojis.\n"
         
-        return prompt 
+        return prompt

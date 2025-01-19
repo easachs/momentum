@@ -4,9 +4,10 @@ from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.shortcuts import render
 from .models import Friendship
-from tracker.models import Habit
+from tracker.models import Habit, HabitCompletion, Badge
 from django.urls import reverse
-from django.db.models import Q
+from django.db.models import Q, Count
+from tracker.services.badge_service import BadgeService
 
 @login_required
 def send_friend_request(request, username):
@@ -16,45 +17,76 @@ def send_friend_request(request, username):
         messages.error(request, "You can't send a friend request to yourself!")
         return redirect('tracker:dashboard', username=username)
         
-    friendship, created = Friendship.objects.get_or_create(
-        sender=request.user,
-        receiver=receiver,
-        defaults={'status': 'pending'}
-    )
+    friendship = Friendship.objects.filter(
+        (Q(sender=request.user, receiver=receiver) |
+         Q(sender=receiver, receiver=request.user))
+    ).first()
     
-    if created:
-        messages.success(request, f"Friend request sent to {receiver.username}! 🤝")
-    else:
+    if friendship:
         if friendship.status == 'pending':
-            messages.info(request, f"You already have a pending request to {receiver.username}")
+            messages.info(request, f"You already have a pending request with {receiver.username}")
         elif friendship.status == 'accepted':
             messages.info(request, f"You're already friends with {receiver.username}! 🎉")
         elif friendship.status == 'declined':
-            friendship.status = 'pending'
-            friendship.save()
-            messages.success(request, f"Friend request sent to {receiver.username}! 🤝")
+            # Allow new friend request if:
+            # 1. The request was rejected by the current user, OR
+            # 2. The rejected_by field is null (old records)
+            if friendship.rejected_by is None or friendship.rejected_by == request.user:
+                # Create a new friendship request with reversed roles
+                friendship.delete()  # Delete the old declined friendship
+                Friendship.objects.create(
+                    sender=request.user,
+                    receiver=receiver,
+                    status='pending'
+                )
+                messages.success(request, f"Friend request sent to {receiver.username}! 🤝")
+            else:
+                messages.error(request, f"Cannot send friend request to {receiver.username}")
+    else:
+        Friendship.objects.create(sender=request.user, receiver=receiver, status='pending')
+        messages.success(request, f"Friend request sent to {receiver.username}! 🤝")
     
     return redirect('tracker:dashboard', username=username)
 
 @login_required
-def handle_friend_request(request, friendship_id, action):
-    friendship = get_object_or_404(
-        Friendship,
-        id=friendship_id,
-        receiver=request.user,
-        status='pending'
-    )
+def handle_friend_request(request, request_id, action):
+    friendship = get_object_or_404(Friendship, id=request_id)
+    
+    if friendship.receiver != request.user:
+        messages.error(request, "You don't have permission to handle this request!")
+        return redirect('social:friends_list')
     
     if action == 'accept':
         friendship.status = 'accepted'
+        friendship.rejected_by = None
         friendship.save()
-        messages.success(request, f"You're now friends with {friendship.sender.username}! 🎉")
+        messages.success(request, f"You are now friends with {friendship.sender.username}! 🎉")
+        
+        # Check for friend badge
+        BadgeService(request.user).check_social_badges()
+        BadgeService(friendship.sender).check_social_badges()
+        
     elif action == 'decline':
         friendship.status = 'declined'
+        friendship.rejected_by = request.user
         friendship.save()
-        messages.info(request, f"Friend request from {friendship.sender.username} declined")
-        
-    return redirect('tracker:dashboard', username=request.user.username)
+        messages.success(request, f"Friend request from {friendship.sender.username} declined")
+    
+    return redirect('social:friends_list')
+
+@login_required
+def unfriend(request, friendship_id):
+    friendship = get_object_or_404(Friendship, id=friendship_id)
+    
+    if request.user not in [friendship.sender, friendship.receiver]:
+        messages.error(request, "You don't have permission to do this!")
+        return redirect('social:friends_list')
+    
+    friendship.delete()
+    other_user = friendship.receiver if request.user == friendship.sender else friendship.sender
+    messages.success(request, f"You are no longer friends with {other_user.username}")
+    
+    return redirect('social:friends_list')
 
 @login_required
 def friends_list(request):
@@ -104,12 +136,18 @@ def leaderboard(request):
         completion_rate = (total_completions / total_possible * 100) if total_possible > 0 else 0
         current_streak = max((habit.current_streak() for habit in habits), default=0)
         
+        # Get user's badges
+        badges = Badge.get_user_highest_badges(user)
+        badge_count = sum(1 for badge in badges.values() if badge is not None)
+        
         leaderboard_data.append({
             'user': user,
             'total_completions': total_completions,
             'completion_rate': completion_rate,
             'current_streak': current_streak,
             'total_habits': habits.count(),
+            'badges': badges,
+            'badge_count': badge_count
         })
     
     leaderboard_data.sort(key=lambda x: (-x['completion_rate'], -x['total_completions']))
