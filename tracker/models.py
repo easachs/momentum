@@ -115,6 +115,41 @@ class Habit(models.Model):
 
         return streak
 
+    def longest_streak(self):
+        """Calculate the longest streak of habit completions"""
+        completions = self.completions.order_by('completed_at').values_list('completed_at', flat=True)
+        if not completions:
+            return 0
+
+        longest = current = 1
+        if self.frequency == 'daily':
+            # No need to convert to dates since completed_at is already a date
+            dates = list(completions)  # Convert queryset to list
+            for i in range(1, len(dates)):
+                if (dates[i] - dates[i-1]).days == 1:
+                    current += 1
+                    longest = max(longest, current)
+                else:
+                    current = 1
+        else:  # weekly
+            # Group completions by week
+            week_completions = {}
+            for completion in completions:
+                # completion is already a date, so no need for .date()
+                week_start = completion - timedelta(days=completion.weekday())
+                week_completions[week_start] = True
+
+            # Sort weeks and count consecutive ones
+            weeks = sorted(week_completions.keys())
+            for i in range(1, len(weeks)):
+                if (weeks[i] - weeks[i-1]).days == 7:
+                    current += 1
+                    longest = max(longest, current)
+                else:
+                    current = 1
+
+        return longest
+
 
 # Join model - similar to a HABTM or has_many :through in Rails
 class HabitCompletion(models.Model):

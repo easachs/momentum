@@ -85,7 +85,7 @@
         </div>
 
         <div class="bg-white rounded-lg shadow p-6 mb-6">
-            <h2 class="text-xl font-bold mb-4">Category Insights</h2>
+            <h2 class="text-lg font-semibold mb-4">Category Insights</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {% for stat in analytics.category_stats %}
                     <div class="border rounded p-4">
@@ -281,18 +281,6 @@
                     </a>
                 {% endfor %}
             </div>
-        </div>
-
-        <div>
-            <label class="text-gray-600">Sort by:</label>
-            <select class="ml-2 rounded border" onchange="window.location.href=this.value">
-                <option value="{% url 'tracker:habit_list' %}?sort=name" {% if request.GET.sort == 'name' %}selected{% endif %}>
-                    Name
-                </option>
-                <option value="{% url 'tracker:habit_list' %}?sort=category" {% if request.GET.sort == 'category' %}selected{% endif %}>
-                    Category
-                </option>
-            </select>
         </div>
     </div>
 </div>

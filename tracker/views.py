@@ -177,12 +177,24 @@ class HabitDetailView(LoginRequiredMixin, DetailView):
     model = Habit
     template_name = "tracker/habit_detail.html"
 
+    def get_queryset(self):
+        # Only allow viewing own habits
+        return Habit.objects.filter(user=self.request.user)
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         today = timezone.now().date()
         yesterday = today - timedelta(days=1)
+        start_of_week = today - timezone.timedelta(days=today.weekday())
+        start_of_month = today.replace(day=1)
         habit = self.get_object()
 
+        # Calculate total possible completions and actual completions
+        days_since_creation = (today - habit.created_at.date()).days + 1
+        total_possible = days_since_creation if habit.frequency == 'daily' else (days_since_creation + 6) // 7
+
+        completions = habit.completions.filter(completed_at__gte=habit.created_at.date()).count()
+        
         context.update({
             'today': today,
             'yesterday': yesterday,
@@ -194,6 +206,15 @@ class HabitDetailView(LoginRequiredMixin, DetailView):
                 habit=habit,
                 completed_at=yesterday
             ).exists(),
+            'analytics': {
+                'total_completions': completions,
+                'total_possible': total_possible,
+                'completion_rate': (completions / total_possible * 100) if total_possible > 0 else 0,
+                'this_week_completions': habit.completions.filter(completed_at__gte=start_of_week).count(),
+                'this_month_completions': habit.completions.filter(completed_at__gte=start_of_month).count(),
+                'current_streak': habit.current_streak(),
+                'longest_streak': habit.longest_streak(),
+            }
         })
         return context
 
