@@ -218,15 +218,15 @@ if DEBUG:
                 'class': 'logging.StreamHandler',
             },
         },
+        'root': {
+            'handlers': ['console'],
+            'level': 'INFO',
+        },
         'loggers': {
-            'django.request': {
+            'tracker': {
                 'handlers': ['console'],
-                'level': 'DEBUG',
+                'level': 'INFO',
                 'propagate': True,
-            },
-            'allauth': {
-                'handlers': ['console'],
-                'level': 'DEBUG',
             },
         },
     }

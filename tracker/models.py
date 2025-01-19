@@ -4,6 +4,8 @@ from django.urls import reverse
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from datetime import timedelta
+from django.conf import settings
+from tracker.templatetags.markdown_filters import markdown_filter
 
 
 # Models in Django are similar to ActiveRecord models in Rails
@@ -180,3 +182,11 @@ class HabitCompletion(models.Model):
 
     def __str__(self):
         return f"{self.habit.name} completed on {self.completed_at}"
+
+class AIHabitSummary(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    content = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']

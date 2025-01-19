@@ -3,8 +3,8 @@ from django.views.generic import (CreateView, DeleteView, DetailView, ListView,
                                   UpdateView)
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import redirect, get_object_or_404
-from django.http import JsonResponse
-from django.views.decorators.http import require_POST
+from django.http import JsonResponse, HttpResponse
+from django.views.decorators.http import require_POST, require_http_methods
 from django.contrib.auth.decorators import login_required
 from datetime import datetime, timedelta
 from django.utils import timezone
@@ -14,8 +14,14 @@ from django.contrib import messages
 from social.models import Friendship
 from django.contrib.auth import get_user_model
 from django.urls import reverse
+from django.views.decorators.csrf import csrf_protect
+import logging
 
-from .models import Habit, HabitCompletion
+from .models import Habit, HabitCompletion, AIHabitSummary
+from .services.ai_service import AIHabitService
+from tracker.templatetags.markdown_filters import markdown_filter
+
+logger = logging.getLogger(__name__)
 
 
 class HabitListView(LoginRequiredMixin, ListView):
@@ -213,7 +219,13 @@ class HabitListView(LoginRequiredMixin, ListView):
         
         # Add category choices for filtering
         context['habit_categories'] = Habit.CATEGORY_CHOICES
-        
+
+        # Add latest AI summary to context
+        if self.viewed_user == self.request.user:
+            context['latest_summary'] = AIHabitSummary.objects.filter(
+                user=self.request.user
+            ).first()
+
         return context
 
 
@@ -320,3 +332,36 @@ def root_redirect(request):
     if request.user.is_authenticated:
         return redirect('tracker:habit_list', username=request.user.username)
     return redirect('account_login')
+
+
+@login_required
+@csrf_protect
+@require_http_methods(["POST"])
+def generate_ai_summary(request):
+    try:
+        service = AIHabitService()
+        summary_content = service.generate_habit_summary(request.user)
+        
+        if summary_content.startswith('Error:'):
+            return JsonResponse({
+                'error': summary_content
+            }, status=500)
+        
+        summary = AIHabitSummary.objects.create(
+            user=request.user,
+            content=summary_content
+        )
+        
+        # Render the markdown to HTML before sending
+        rendered_content = markdown_filter(summary_content)
+        
+        return JsonResponse({
+            'content': rendered_content,  # This is now HTML
+            'raw_content': summary_content,  # Keep the raw markdown just in case
+            'created_at': summary.created_at.isoformat()
+        })
+    except Exception as e:
+        logger.error(f"Error in generate_ai_summary: {str(e)}")
+        return JsonResponse({
+            'error': 'An unexpected error occurred'
+        }, status=500)
