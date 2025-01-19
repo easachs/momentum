@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="py-8">
+    <h1 class="text-2xl font-bold mb-8">Friends & Requests</h1>
+
+    <!-- Incoming Friend Requests -->
+    {% if incoming_requests %}
+        <div class="mb-8">
+            <h2 class="text-xl font-semibold mb-4">Incoming Friend Requests</h2>
+            <div class="space-y-4">
+                {% for request in incoming_requests %}
+                    <div class="bg-white rounded-lg shadow p-4 flex items-center justify-between">
+                        <span class="text-lg">{{ request.sender.username }}</span>
+                        <div class="space-x-2">
+                            <a href="{% url 'social:handle_friend_request' request.id 'accept' %}" 
+                               class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+                                Accept
+                            </a>
+                            <a href="{% url 'social:handle_friend_request' request.id 'decline' %}" 
+                               class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
+                                Decline
+                            </a>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Outgoing Friend Requests -->
+    {% if outgoing_requests %}
+        <div class="mb-8">
+            <h2 class="text-xl font-semibold mb-4">Pending Requests</h2>
+            <div class="space-y-4">
+                {% for request in outgoing_requests %}
+                    <div class="bg-white rounded-lg shadow p-4">
+                        <span class="text-lg">Request sent to {{ request.receiver.username }}</span>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Friends List -->
+    <div>
+        <h2 class="text-xl font-semibold mb-4">Friends</h2>
+        {% if friends %}
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {% for friendship in friends %}
+                    {% if friendship.sender == user %}
+                        <div class="bg-white rounded-lg shadow p-4">
+                            <a href="{% url 'tracker:habit_list' username=friendship.receiver.username %}" 
+                               class="text-lg text-blue-600 hover:text-blue-800">
+                                {{ friendship.receiver.username }}
+                            </a>
+                        </div>
+                    {% else %}
+                        <div class="bg-white rounded-lg shadow p-4">
+                            <a href="{% url 'tracker:habit_list' username=friendship.sender.username %}" 
+                               class="text-lg text-blue-600 hover:text-blue-800">
+                                {{ friendship.sender.username }}
+                            </a>
+                        </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="text-gray-600">No friends yet. Start by sending some friend requests!</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %} 

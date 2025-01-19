@@ -67,7 +67,7 @@ class Habit(models.Model):
 
     # Similar to Rails' url helpers but more explicit
     def get_absolute_url(self):
-        return reverse('tracker:habit_detail', args=[self.pk])
+        return reverse('tracker:habit_detail', kwargs={'username': self.user.username, 'pk': self.pk})
 
     # Instance methods - similar to Ruby instance methods
     def is_completed_for_date(self, date=None):
@@ -149,6 +149,17 @@ class Habit(models.Model):
                     current = 1
 
         return longest
+
+    def get_total_possible_completions(self):
+        """Calculate total possible completions since habit creation"""
+        today = timezone.now().date()
+        days_since_creation = (today - self.created_at.date()).days + 1  # +1 to include today
+        
+        if self.frequency == 'daily':
+            return days_since_creation
+        else:  # weekly
+            # Calculate full weeks since creation, rounding up if there's a partial week
+            return (days_since_creation + 6) // 7  # Using integer division to round up
 
 
 # Join model - similar to a HABTM or has_many :through in Rails

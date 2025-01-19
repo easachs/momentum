@@ -1,59 +1,62 @@
-import pytest
+from django.test import TestCase
 from django.urls import reverse
 from django.contrib.auth import get_user_model
-from datetime import timedelta
 from django.utils import timezone
+from datetime import timedelta
 from tracker.models import Habit, HabitCompletion
 
-# Import the fixture
-@pytest.fixture
-def test_user():
-    return get_user_model().objects.create(
-        email='test@example.com',
-        username='testuser'
-    )
+class TestHabitAnalytics(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(
+            username='testuser',
+            email='test@example.com',
+            password='testpass123'
+        )
+        self.client.force_login(self.user)
+        self.habit = Habit.objects.create(
+            name='Test Habit',
+            user=self.user,
+            frequency='daily',
+            category='health'
+        )
 
-@pytest.mark.django_db
-class TestHabitAnalytics:
-    def test_category_performance_stats(self, test_user, client):
-        client.force_login(test_user)
+    def test_category_performance_stats(self):
         # Create habits in different categories
         habit1 = Habit.objects.create(
-            user=test_user,
+            user=self.user,
             name="Health Habit",
             category="health",
             frequency="daily"
         )
         habit2 = Habit.objects.create(
-            user=test_user,
+            user=self.user,
             name="Learning Habit",
             category="learning",
             frequency="daily"
         )
 
-        # Complete some habits
+        # Complete one habit
         habit1.toggle_completion()
         
-        response = client.get(reverse('tracker:habit_list'))
+        response = self.client.get(reverse('tracker:habit_list', kwargs={'username': self.user.username}))
         category_stats = {
             stat['category']: stat 
             for stat in response.context['analytics']['category_stats']
         }
 
-        # Check health category stats
-        assert category_stats['health']['completed'] == 1
-        assert category_stats['health']['total'] == 1  # One day since creation
+        # Check health category stats (now we have 2 health habits, one completed)
+        self.assertEqual(category_stats['health']['completed'], 1)
+        self.assertEqual(category_stats['health']['total'], 2)  # Updated to expect 2 total
 
         # Check learning category stats
-        assert category_stats['learning']['completed'] == 0
-        assert category_stats['learning']['total'] == 1  # One day since creation
+        self.assertEqual(category_stats['learning']['completed'], 0)
+        self.assertEqual(category_stats['learning']['total'], 1)
 
-    def test_weekly_monthly_completion_counts(self, test_user, client):
-        client.force_login(test_user)
+    def test_weekly_monthly_completion_counts(self):
         today = timezone.now().date()
         habit = Habit.objects.create(
-            user=test_user,
-            name="Test Habit",
+            user=self.user,
+            name="Test Habit 2",
             frequency="daily"
         )
 
@@ -68,8 +71,8 @@ class TestHabitAnalytics:
         for date in dates:
             HabitCompletion.objects.create(habit=habit, completed_at=date)
 
-        response = client.get(reverse('tracker:habit_list'))
+        response = self.client.get(reverse('tracker:habit_list', kwargs={'username': self.user.username}))
         analytics = response.context['analytics']
 
-        assert analytics['this_week_completions'] == 2  # Today and yesterday
-        assert analytics['this_month_completions'] == 4  # All except the 30-day-old one 
+        self.assertEqual(analytics['this_week_completions'], 2)  # Today and yesterday
+        self.assertEqual(analytics['this_month_completions'], 4)  # All except the 30-day-old one 

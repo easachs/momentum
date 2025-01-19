@@ -267,7 +267,7 @@ class HabitCreateView(LoginRequiredMixin, CreateView):
     model = Habit
     fields = ["name", "description", "frequency", "category"]
     template_name = "tracker/habit_form.html"
-    
+
     def get_success_url(self):
         return reverse('tracker:habit_list', kwargs={'username': self.request.user.username})
 
@@ -300,6 +300,7 @@ class HabitDeleteView(LoginRequiredMixin, DeleteView):
 
 
 @login_required
+@require_POST
 def toggle_habit_completion(request, pk):
     habit = get_object_or_404(Habit, pk=pk, user=request.user)
     date = request.POST.get('date')
@@ -309,9 +310,9 @@ def toggle_habit_completion(request, pk):
         habit.toggle_completion()
     
     referer = request.META.get('HTTP_REFERER')
-    return redirect(referer) if referer else redirect('tracker:habit_detail', 
-                                                    username=request.user.username,
-                                                    pk=pk)
+    if referer:
+        return redirect(referer)
+    return redirect('tracker:habit_detail', username=request.user.username, pk=pk)
 
 
 def root_redirect(request):

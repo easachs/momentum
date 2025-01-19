@@ -44,7 +44,7 @@
                 <!-- Today's completion -->
                 <div class="border rounded-lg p-4">
                     <h2 class="font-semibold mb-2">Today</h2>
-                    <form method="post" action="{% url 'tracker:habit_completion_toggle' pk=habit.pk %}" class="inline">
+                    <form method="post" action="{% url 'tracker:habit_completion_toggle' pk=habit.pk %}">
                         {% csrf_token %}
                         <input type="hidden" name="date" value="{{ today|date:'Y-m-d' }}">
                         <button type="submit" 
@@ -61,7 +61,7 @@
                 <!-- Yesterday's completion -->
                 <div class="border rounded-lg p-4">
                     <h2 class="font-semibold mb-2">Yesterday</h2>
-                    <form method="post" action="{% url 'tracker:habit_completion_toggle' pk=habit.pk %}" class="inline">
+                    <form method="post" action="{% url 'tracker:habit_completion_toggle' pk=habit.pk %}">
                         {% csrf_token %}
                         <input type="hidden" name="date" value="{{ yesterday|date:'Y-m-d' }}">
                         <button type="submit" 
@@ -84,11 +84,11 @@
             </a>
             {% if user == habit.user %}
                 <div class="space-x-2">
-                    <a href="{% url 'tracker:habit_update' habit.pk %}" 
+                    <a href="{% url 'tracker:habit_update' pk=habit.pk %}" 
                        class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
                         Edit
                     </a>
-                    <a href="{% url 'tracker:habit_delete' habit.pk %}" 
+                    <a href="{% url 'tracker:habit_delete' pk=habit.pk %}" 
                        class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
                         Delete
                     </a>

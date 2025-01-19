@@ -7,14 +7,27 @@ from datetime import timedelta
 from django.db import transaction
 from django.db.utils import IntegrityError
 from django.urls import reverse
+from django.test import TestCase
 
 @pytest.mark.django_db
-class TestHabitModel:
-    def test_create_habit(self):
-        # Arrange: Create a test user and habit
-        user = get_user_model().objects.create(
+class TestHabitModel(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(
+            username='testuser',
             email='test@example.com',
-            username='testuser'
+            password='testpass123'
+        )
+        self.habit = Habit.objects.create(
+            name='Test Habit',
+            user=self.user,
+            frequency='daily'
+        )
+
+    def test_create_habit(self):
+        user = get_user_model().objects.create_user(
+            email='test2@example.com',
+            username='testuser2',
+            password='testpass123'
         )
         habit = Habit.objects.create(
             user=user,
@@ -23,12 +36,11 @@ class TestHabitModel:
             frequency="daily"
         )
 
-        # Act & Assert: Verify the habit was created successfully
-        assert habit.name == "Exercise"
-        assert habit.description == "Go for a run"
-        assert habit.frequency == "daily"
-        assert habit.user == user
-        assert str(habit) == "Exercise"  # Tests the __str__ method
+        self.assertEqual(habit.name, "Exercise")
+        self.assertEqual(habit.description, "Go for a run")
+        self.assertEqual(habit.frequency, "daily")
+        self.assertEqual(habit.user, user)
+        self.assertEqual(str(habit), "Exercise")
 
     def test_habit_name_min_length(self):
         user = get_user_model().objects.create(email='test@example.com')
@@ -83,16 +95,9 @@ class TestHabitModel:
         assert habit1.user != habit2.user
 
     def test_habit_cascade_delete(self):
-        user = get_user_model().objects.create(email='test@example.com')
-        Habit.objects.create(
-            user=user,
-            name="Exercise",
-            frequency="daily"
-        )
-        
-        # Delete user should delete their habits
-        user.delete()
-        assert Habit.objects.count() == 0
+        habit_id = self.habit.id
+        self.user.delete()
+        self.assertEqual(Habit.objects.filter(id=habit_id).count(), 0)
 
     def test_habit_invalid_frequency(self):
         user = get_user_model().objects.create(email='test@example.com')
@@ -127,16 +132,11 @@ class TestHabitModel:
         assert before <= habit.created_at <= after
 
     def test_habit_str_representation(self):
-        user = get_user_model().objects.create(email='test@example.com')
-        habit = Habit.objects.create(
-            user=user,
-            name="Exercise",
-            frequency="daily"
+        self.assertEqual(str(self.habit), 'Test Habit')
+        self.assertEqual(
+            self.habit.get_absolute_url(),
+            reverse('tracker:habit_detail', kwargs={'username': self.user.username, 'pk': self.habit.pk})
         )
-        assert str(habit) == "Exercise"
-        # Get the expected URL using reverse() to ensure it matches the URL patterns
-        expected_url = reverse('tracker:habit_detail', args=[habit.pk])
-        assert habit.get_absolute_url() == expected_url
 
     def test_habit_blank_description_allowed(self):
         user = get_user_model().objects.create(email='test@example.com')
