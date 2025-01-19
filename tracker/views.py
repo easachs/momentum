@@ -7,17 +7,32 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
 from datetime import datetime
+from django.utils import timezone
+from django.db.models import Count, Q
 
 from .models import Habit
 
 
 class HabitListView(LoginRequiredMixin, ListView):
     model = Habit
-    template_name = "tracker/habit_list.html"  # Rails equivalent: index.html.erb
-    context_object_name = 'habits'
+    template_name = "tracker/habit_list.html"
+    context_object_name = 'habits_summary'
 
-    def get_queryset(self):
-        return Habit.objects.filter(user=self.request.user)
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        today = timezone.now().date()
+        start_of_week = today - timezone.timedelta(days=today.weekday())
+        
+        # Get habits and annotate with completion status for today and this week
+        habits = Habit.objects.filter(user=self.request.user).annotate(
+            completed_today=Count('completions', filter=Q(completions__completed_at=today)),
+            completed_this_week=Count('completions', filter=Q(completions__completed_at__gte=start_of_week))
+        )
+        
+        # Separate habits by frequency
+        context['daily_habits'] = habits.filter(frequency='daily')
+        context['weekly_habits'] = habits.filter(frequency='weekly')
+        return context
 
 
 class HabitDetailView(LoginRequiredMixin, DetailView):
@@ -66,3 +81,19 @@ def toggle_habit_completion(request, pk):
     # Simply redirect back to the previous page
     referer = request.META.get('HTTP_REFERER')
     return redirect(referer) if referer else redirect('tracker:habit_detail', pk=pk)
+
+
+class DashboardAndHabitListView(LoginRequiredMixin, ListView):
+    model = Habit
+    template_name = "tracker/dashboard_and_habit_list.html"
+    context_object_name = 'habits_summary'
+
+    def get_queryset(self):
+        today = timezone.now().date()
+        start_of_week = today - timezone.timedelta(days=today.weekday())
+        
+        # Get habits and annotate with completion status for today and this week
+        return Habit.objects.filter(user=self.request.user).annotate(
+            completed_today=Count('completions', filter=Q(completions__completed_at=today)),
+            completed_this_week=Count('completions', filter=Q(completions__completed_at__gte=start_of_week))
+        )

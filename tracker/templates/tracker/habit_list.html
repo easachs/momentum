@@ -2,29 +2,31 @@
 
 {% block content %}
 <div class="py-8">
-    <h1 class="text-3xl font-bold mb-6">Your Habits</h1>
-    <ul class="space-y-4">
-        {% if object_list %}
-            {% for habit in object_list %}
-                <li class="bg-white p-4 rounded-lg shadow flex items-center justify-between">
-                    <div class="flex-1">
+    <!-- Daily Habits -->
+    {% if daily_habits %}
+        <h2 class="text-2xl font-semibold mb-4">Daily Habits</h2>
+        <ul class="space-y-4">
+            {% for habit in daily_habits %}
+                <li class="bg-white p-4 rounded-lg shadow flex flex-col sm:flex-row items-start sm:items-center justify-between">
+                    <div class="flex-1 mb-2 sm:mb-0">
                         <a href="{% url 'tracker:habit_detail' habit.pk %}" class="text-blue-600 hover:text-blue-800">
-                            {{ habit.name }}
+                            <span class="text-xl font-bold">{{ habit.name }}</span>
                         </a>
-                        <span class="ml-2 text-gray-600">
+                        <span class="ml-2 text-gray-600 block sm:inline">
                             <strong>Category:</strong> {{ habit.get_category_display }}
                         </span>
                     </div>
-                    
-                    <!-- Completion Status and Toggle -->
-                    <div class="flex items-center space-x-4">
+                    <div class="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
                         <span class="text-sm text-gray-600">
-                            Today's Status:
-                            {% if habit.is_completed_for_date %}
+                            Today's Status: 
+                            {% if habit.completed_today %}
                                 <span class="text-green-600">✓ Done</span>
                             {% else %}
                                 <span class="text-red-600">○ Not Done</span>
                             {% endif %}
+                        </span>
+                        <span class="text-sm text-gray-600">
+                            This Week: {{ habit.completed_this_week }} times
                         </span>
                         <form method="post" action="{% url 'tracker:habit_completion_toggle' habit.pk %}" class="inline">
                             {% csrf_token %}
@@ -40,10 +42,52 @@
                     </div>
                 </li>
             {% endfor %}
-        {% else %}
-            <li class="text-gray-500">No habits yet.</li>
-        {% endif %}
-    </ul>
+        </ul>
+    {% endif %}
+
+    <!-- Weekly Habits -->
+    {% if weekly_habits %}
+        <h2 class="text-2xl font-semibold mt-8 mb-4">Weekly Habits</h2>
+        <ul class="space-y-4">
+            {% for habit in weekly_habits %}
+                <li class="bg-white p-4 rounded-lg shadow flex flex-col sm:flex-row items-start sm:items-center justify-between">
+                    <div class="flex-1 mb-2 sm:mb-0">
+                        <a href="{% url 'tracker:habit_detail' habit.pk %}" class="text-blue-600 hover:text-blue-800">
+                            <span class="text-xl font-bold">{{ habit.name }}</span>
+                        </a>
+                        <span class="ml-2 text-gray-600 block sm:inline">
+                            <strong>Category:</strong> {{ habit.get_category_display }}
+                        </span>
+                    </div>
+                    <div class="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
+                        <span class="text-sm text-gray-600">
+                            This Week's Status: 
+                            {% if habit.completed_this_week > 0 %}
+                                <span class="text-green-600">✓ Done</span>
+                            {% else %}
+                                <span class="text-red-600">○ Not Done</span>
+                            {% endif %}
+                        </span>
+                        <span class="text-sm text-gray-600">
+                            This Week: {{ habit.completed_this_week }} times
+                        </span>
+                        <form method="post" action="{% url 'tracker:habit_completion_toggle' habit.pk %}" class="inline">
+                            {% csrf_token %}
+                            <button type="submit" 
+                                    class="{% if habit.is_completed_for_date %}bg-red-500 hover:bg-red-600{% else %}bg-green-500 hover:bg-green-600{% endif %} text-white px-3 py-1 rounded text-sm">
+                                {% if habit.is_completed_for_date %}
+                                    Mark Incomplete
+                                {% else %}
+                                    Mark Complete
+                                {% endif %}
+                            </button>
+                        </form>
+                    </div>
+                </li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+
     <a href="{% url 'tracker:habit_create' %}" 
        class="mt-6 inline-block bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
         Add New Habit
