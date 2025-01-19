@@ -1,91 +1,208 @@
 {% extends 'base.html' %}
+{% load math_filters %}
 
 {% block content %}
 <div class="py-8">
-    <!-- Daily Habits -->
-    {% if daily_habits %}
-        <h2 class="text-2xl font-semibold mb-4">Daily Habits</h2>
-        <ul class="space-y-4">
-            {% for habit in daily_habits %}
-                <li class="bg-white p-4 rounded-lg shadow flex flex-col sm:flex-row items-start sm:items-center justify-between {% if habit.streak >= 5 %}border-2 border-yellow-500{% endif %}">
-                    <div class="flex-1 mb-2 sm:mb-0">
-                        <a href="{% url 'tracker:habit_detail' habit.pk %}" class="text-blue-600 hover:text-blue-800">
-                            <span class="text-xl font-bold">{{ habit.name }}</span>
-                        </a>
-                        <span class="ml-2 text-gray-600 block sm:inline">
-                            <strong>Category:</strong> {{ habit.get_category_display }}
-                        </span>
-                    </div>
-                    <div class="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
-                        <span class="text-sm text-gray-600">
-                            Today's Status: 
-                            {% if habit.completed_today %}
-                                <span class="text-green-600">✓ Done</span>
-                            {% else %}
-                                <span class="text-red-600">○ Not Done</span>
-                            {% endif %}
-                        </span>
-                        <span class="text-sm text-gray-600">
-                            Streak: {{ habit.streak }} {% if habit.streak == 1 %}day{% else %}days{% endif %}
-                        </span>
-                        <form method="post" action="{% url 'tracker:habit_completion_toggle' habit.pk %}" class="inline">
-                            {% csrf_token %}
-                            <button type="submit" 
-                                    class="{% if habit.is_completed_for_date %}bg-red-500 hover:bg-red-600{% else %}bg-green-500 hover:bg-green-600{% endif %} text-white px-3 py-1 rounded text-sm">
-                                {% if habit.is_completed_for_date %}
-                                    Mark Incomplete
-                                {% else %}
-                                    Mark Complete
-                                {% endif %}
-                            </button>
-                        </form>
-                    </div>
-                </li>
-            {% endfor %}
-        </ul>
-    {% endif %}
+    <!-- Analytics Dashboard -->
+    <div class="mb-8">
+        <h2 class="text-2xl font-semibold mb-6">Your Habit Analytics</h2>
+        
+        <!-- Summary Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div class="bg-white p-4 rounded-lg shadow">
+                <h3 class="text-gray-500 text-sm">Total Habits</h3>
+                <p class="text-2xl font-bold">{{ analytics.total_habits }}</p>
+            </div>
+            <div class="bg-white p-4 rounded-lg shadow">
+                <h3 class="text-gray-500 text-sm">This Week's Completions</h3>
+                <p class="text-2xl font-bold">{{ analytics.this_week_completions }}</p>
+            </div>
+            <div class="bg-white p-4 rounded-lg shadow">
+                <h3 class="text-gray-500 text-sm">This Month's Completions</h3>
+                <p class="text-2xl font-bold">{{ analytics.this_month_completions }}</p>
+            </div>
+            <div class="bg-white p-4 rounded-lg shadow">
+                <h3 class="text-gray-500 text-sm">Overall Completion Rate</h3>
+                <p class="text-2xl font-bold">{{ analytics.completion_rate|floatformat:1 }}%</p>
+            </div>
+        </div>
 
-    <!-- Weekly Habits -->
-    {% if weekly_habits %}
-        <h2 class="text-2xl font-semibold mt-8 mb-4">Weekly Habits</h2>
-        <ul class="space-y-4">
-            {% for habit in weekly_habits %}
-                <li class="bg-white p-4 rounded-lg shadow flex flex-col sm:flex-row items-start sm:items-center justify-between {% if habit.streak >= 5 %}border-2 border-yellow-500{% endif %}">
-                    <div class="flex-1 mb-2 sm:mb-0">
-                        <a href="{% url 'tracker:habit_detail' habit.pk %}" class="text-blue-600 hover:text-blue-800">
-                            <span class="text-xl font-bold">{{ habit.name }}</span>
-                        </a>
-                        <span class="ml-2 text-gray-600 block sm:inline">
-                            <strong>Category:</strong> {{ habit.get_category_display }}
-                        </span>
+        <!-- Category Performance -->
+        <div class="bg-white p-6 rounded-lg shadow mb-6">
+            <h3 class="text-lg font-semibold mb-4">Category Performance</h3>
+            <div class="space-y-4">
+                {% for stat in analytics.category_stats %}
+                <div class="flex items-center">
+                    <span class="w-32 text-gray-600">{{ stat.category|title }}</span>
+                    <div class="flex-1 bg-gray-200 rounded-full h-4">
+                        {% with completion_percent=stat.completed|multiply:100|divide:stat.total %}
+                        <div class="bg-blue-500 h-4 rounded-full" style="width: {{ completion_percent }}%"></div>
+                        {% endwith %}
                     </div>
-                    <div class="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
-                        <span class="text-sm text-gray-600">
-                            This Week's Status: 
-                            {% if habit.completed_this_week > 0 %}
-                                <span class="text-green-600">✓ Done</span>
-                            {% else %}
-                                <span class="text-red-600">○ Not Done</span>
-                            {% endif %}
-                        </span>
-                        <span class="text-sm text-gray-600">
-                            Streak: {{ habit.streak }} {% if habit.streak == 1 %}week{% else %}weeks{% endif %}
-                        </span>
-                        <form method="post" action="{% url 'tracker:habit_completion_toggle' habit.pk %}" class="inline">
-                            {% csrf_token %}
-                            <button type="submit" 
-                                    class="{% if habit.is_completed_for_date %}bg-red-500 hover:bg-red-600{% else %}bg-green-500 hover:bg-green-600{% endif %} text-white px-3 py-1 rounded text-sm">
-                                {% if habit.is_completed_for_date %}
-                                    Mark Incomplete
+                    <span class="ml-4 text-sm text-gray-600">{{ stat.completed }}/{{ stat.total }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- View Toggle -->
+    <div class="flex justify-end mb-6">
+        <div class="inline-flex rounded-lg border border-gray-200">
+            <a href="?view=frequency" 
+               class="px-4 py-2 rounded-l-lg {% if view_mode == 'frequency' %}bg-blue-500 text-white{% else %}hover:bg-gray-100{% endif %}">
+                By Frequency
+            </a>
+            <a href="?view=category" 
+               class="px-4 py-2 rounded-r-lg {% if view_mode == 'category' %}bg-blue-500 text-white{% else %}hover:bg-gray-100{% endif %}">
+                By Category
+            </a>
+        </div>
+    </div>
+
+    {% if view_mode == 'category' %}
+        <!-- Category View -->
+        {% for category, data in categorized_habits.items %}
+            {% if data.habits %}
+                <h2 class="text-2xl font-semibold {% if not forloop.first %}mt-8{% endif %} mb-4">
+                    {{ data.label }}
+                </h2>
+                <ul class="space-y-4">
+                    {% for habit in data.habits %}
+                        <li class="bg-white p-4 rounded-lg shadow flex flex-col sm:flex-row items-start sm:items-center justify-between {% if habit.streak >= 5 %}border-2 border-yellow-500{% endif %}">
+                            <div class="flex-1 mb-2 sm:mb-0">
+                                <a href="{% url 'tracker:habit_detail' habit.pk %}" class="text-blue-600 hover:text-blue-800">
+                                    <span class="text-xl font-bold">{{ habit.name }}</span>
+                                </a>
+                                <span class="ml-2 text-gray-600 block sm:inline">
+                                    <strong>Frequency:</strong> {{ habit.get_frequency_display }}
+                                </span>
+                            </div>
+                            <div class="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
+                                {% if habit.frequency == 'daily' %}
+                                    <span class="text-sm text-gray-600">
+                                        Today's Status: 
+                                        {% if habit.completed_today %}
+                                            <span class="text-green-600">✓ Done</span>
+                                        {% else %}
+                                            <span class="text-red-600">○ Not Done</span>
+                                        {% endif %}
+                                    </span>
                                 {% else %}
-                                    Mark Complete
+                                    <span class="text-sm text-gray-600">
+                                        This Week's Status: 
+                                        {% if habit.completed_this_week > 0 %}
+                                            <span class="text-green-600">✓ Done</span>
+                                        {% else %}
+                                            <span class="text-red-600">○ Not Done</span>
+                                        {% endif %}
+                                    </span>
                                 {% endif %}
-                            </button>
-                        </form>
-                    </div>
-                </li>
-            {% endfor %}
-        </ul>
+                                <span class="text-sm text-gray-600">
+                                    Streak: {{ habit.streak }} {% if habit.frequency == 'daily' %}{% if habit.streak == 1 %}day{% else %}days{% endif %}{% else %}{% if habit.streak == 1 %}week{% else %}weeks{% endif %}{% endif %}
+                                </span>
+                                <form method="post" action="{% url 'tracker:habit_completion_toggle' habit.pk %}" class="inline">
+                                    {% csrf_token %}
+                                    <button type="submit" 
+                                            class="{% if habit.is_completed_for_date %}bg-red-500 hover:bg-red-600{% else %}bg-green-500 hover:bg-green-600{% endif %} text-white px-3 py-1 rounded text-sm">
+                                        {% if habit.is_completed_for_date %}
+                                            Mark Incomplete
+                                        {% else %}
+                                            Mark Complete
+                                        {% endif %}
+                                    </button>
+                                </form>
+                            </div>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        {% endfor %}
+    {% else %}
+        <!-- Frequency View (existing daily/weekly sections) -->
+        {% if daily_habits %}
+            <h2 class="text-2xl font-semibold mb-4">Daily</h2>
+            <ul class="space-y-4">
+                {% for habit in daily_habits %}
+                    <li class="bg-white p-4 rounded-lg shadow flex flex-col sm:flex-row items-start sm:items-center justify-between {% if habit.streak >= 5 %}border-2 border-yellow-500{% endif %}">
+                        <div class="flex-1 mb-2 sm:mb-0">
+                            <a href="{% url 'tracker:habit_detail' habit.pk %}" class="text-blue-600 hover:text-blue-800">
+                                <span class="text-xl font-bold">{{ habit.name }}</span>
+                            </a>
+                            <span class="ml-2 text-gray-600 block sm:inline">
+                                <strong>Category:</strong> {{ habit.get_category_display }}
+                            </span>
+                        </div>
+                        <div class="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
+                            <span class="text-sm text-gray-600">
+                                Today's Status: 
+                                {% if habit.completed_today %}
+                                    <span class="text-green-600">✓ Done</span>
+                                {% else %}
+                                    <span class="text-red-600">○ Not Done</span>
+                                {% endif %}
+                            </span>
+                            <span class="text-sm text-gray-600">
+                                Streak: {{ habit.streak }} {% if habit.streak == 1 %}day{% else %}days{% endif %}
+                            </span>
+                            <form method="post" action="{% url 'tracker:habit_completion_toggle' habit.pk %}" class="inline">
+                                {% csrf_token %}
+                                <button type="submit" 
+                                        class="{% if habit.is_completed_for_date %}bg-red-500 hover:bg-red-600{% else %}bg-green-500 hover:bg-green-600{% endif %} text-white px-3 py-1 rounded text-sm">
+                                    {% if habit.is_completed_for_date %}
+                                        Mark Incomplete
+                                    {% else %}
+                                        Mark Complete
+                                    {% endif %}
+                                </button>
+                            </form>
+                        </div>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+
+        {% if weekly_habits %}
+            <h2 class="text-2xl font-semibold mt-8 mb-4">Weekly</h2>
+            <ul class="space-y-4">
+                {% for habit in weekly_habits %}
+                    <li class="bg-white p-4 rounded-lg shadow flex flex-col sm:flex-row items-start sm:items-center justify-between {% if habit.streak >= 5 %}border-2 border-yellow-500{% endif %}">
+                        <div class="flex-1 mb-2 sm:mb-0">
+                            <a href="{% url 'tracker:habit_detail' habit.pk %}" class="text-blue-600 hover:text-blue-800">
+                                <span class="text-xl font-bold">{{ habit.name }}</span>
+                            </a>
+                            <span class="ml-2 text-gray-600 block sm:inline">
+                                <strong>Category:</strong> {{ habit.get_category_display }}
+                            </span>
+                        </div>
+                        <div class="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
+                            <span class="text-sm text-gray-600">
+                                This Week's Status: 
+                                {% if habit.completed_this_week > 0 %}
+                                    <span class="text-green-600">✓ Done</span>
+                                {% else %}
+                                    <span class="text-red-600">○ Not Done</span>
+                                {% endif %}
+                            </span>
+                            <span class="text-sm text-gray-600">
+                                Streak: {{ habit.streak }} {% if habit.streak == 1 %}week{% else %}weeks{% endif %}
+                            </span>
+                            <form method="post" action="{% url 'tracker:habit_completion_toggle' habit.pk %}" class="inline">
+                                {% csrf_token %}
+                                <button type="submit" 
+                                        class="{% if habit.is_completed_for_date %}bg-red-500 hover:bg-red-600{% else %}bg-green-500 hover:bg-green-600{% endif %} text-white px-3 py-1 rounded text-sm">
+                                    {% if habit.is_completed_for_date %}
+                                        Mark Incomplete
+                                    {% else %}
+                                        Mark Complete
+                                    {% endif %}
+                                </button>
+                            </form>
+                        </div>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
     {% endif %}
 
     <a href="{% url 'tracker:habit_create' %}" 

@@ -6,11 +6,12 @@ from django.shortcuts import redirect, get_object_or_404
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
-from datetime import datetime
+from datetime import datetime, timedelta
 from django.utils import timezone
 from django.db.models import Count, Q
+from django.db.models.functions import TruncWeek, TruncMonth
 
-from .models import Habit
+from .models import Habit, HabitCompletion
 
 
 class HabitListView(LoginRequiredMixin, ListView):
@@ -22,29 +23,100 @@ class HabitListView(LoginRequiredMixin, ListView):
         context = super().get_context_data(**kwargs)
         today = timezone.now().date()
         start_of_week = today - timezone.timedelta(days=today.weekday())
+        start_of_month = today.replace(day=1)
+        thirty_days_ago = today - timedelta(days=30)
         
-        # Get habits and annotate with completion status for today and this week
-        habits = Habit.objects.filter(user=self.request.user).annotate(
+        habits = Habit.objects.filter(user=self.request.user)
+        
+        # Get completion analytics
+        context['analytics'] = {
+            'total_habits': habits.count(),
+            'total_completions': HabitCompletion.objects.filter(
+                habit__user=self.request.user
+            ).count(),
+            
+            # Weekly summary
+            'this_week_completions': HabitCompletion.objects.filter(
+                habit__user=self.request.user,
+                completed_at__gte=start_of_week
+            ).count(),
+            
+            # Monthly summary
+            'this_month_completions': HabitCompletion.objects.filter(
+                habit__user=self.request.user,
+                completed_at__gte=start_of_month
+            ).count(),
+            
+            # Completion rate over time (last 30 days)
+            'daily_stats': HabitCompletion.objects.filter(
+                habit__user=self.request.user,
+                completed_at__gte=thirty_days_ago
+            ).annotate(
+                date=TruncWeek('completed_at')
+            ).values('date').annotate(
+                count=Count('id')
+            ).order_by('date'),
+            
+            # Completion by category
+            'category_stats': habits.values('category').annotate(
+                total=Count('id'),
+                completed=Count('completions', filter=Q(completions__completed_at__gte=thirty_days_ago))
+            )
+        }
+        
+        # Calculate completion rate percentage based on days since creation
+        total_possible = 0
+        for habit in habits:
+            days_since_creation = (today - habit.created_at.date()).days + 1
+            if habit.frequency == 'daily':
+                total_possible += days_since_creation
+            else:  # weekly
+                total_possible += (days_since_creation + 6) // 7  # Round up to nearest week
+        
+        if total_possible > 0:
+            context['analytics']['completion_rate'] = (context['analytics']['total_completions'] / total_possible) * 100
+        else:
+            context['analytics']['completion_rate'] = 0
+        
+        # Original habit list logic
+        habits = habits.annotate(
             completed_today=Count('completions', filter=Q(completions__completed_at=today)),
             completed_this_week=Count('completions', filter=Q(completions__completed_at__gte=start_of_week))
         )
         
-        # Calculate streaks for each habit
-        daily_habits = []
-        weekly_habits = []
+        # Get view mode from URL parameter, default to 'frequency'
+        view_mode = self.request.GET.get('view', 'frequency')
+        context['view_mode'] = view_mode
         
-        for habit in habits:
-            # Calculate the streak for each habit
-            streak = habit.current_streak()
-            habit.streak = streak  # Add streak as an attribute
+        if view_mode == 'category':
+            # Group by category
+            categorized_habits = {}
+            for category, label in Habit.CATEGORY_CHOICES:
+                categorized_habits[category] = {
+                    'label': label,
+                    'habits': []
+                }
             
-            if habit.frequency == 'daily':
-                daily_habits.append(habit)
-            else:
-                weekly_habits.append(habit)
+            for habit in habits:
+                habit.streak = habit.current_streak()
+                categorized_habits[habit.category]['habits'].append(habit)
+            
+            context['categorized_habits'] = categorized_habits
+        else:
+            # Original frequency-based grouping
+            daily_habits = []
+            weekly_habits = []
+            
+            for habit in habits:
+                habit.streak = habit.current_streak()
+                if habit.frequency == 'daily':
+                    daily_habits.append(habit)
+                else:
+                    weekly_habits.append(habit)
+            
+            context['daily_habits'] = daily_habits
+            context['weekly_habits'] = weekly_habits
         
-        context['daily_habits'] = daily_habits
-        context['weekly_habits'] = weekly_habits
         return context
 
 
