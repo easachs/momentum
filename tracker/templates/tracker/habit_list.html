@@ -246,16 +246,16 @@
         <div class="mt-8 space-y-6">
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <a href="{% url 'tracker:habit_create' %}" 
-                   class="inline-block bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                   class="inline-block bg-blue-500 text-white px-3 py-1.5 md:px-4 md:py-2 text-sm md:text-base rounded hover:bg-blue-600">
                     Add New Habit
                 </a>
                 <div class="space-x-4">
                     <a href="{% url 'social:friends_list' %}"
-                       class="inline-block bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600">
+                       class="inline-block bg-purple-500 text-white px-3 py-1.5 md:px-4 md:py-2 text-sm md:text-base rounded hover:bg-purple-600">
                         Friends
                     </a>
                     <a href="{% url 'social:leaderboard' %}"
-                       class="inline-block bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600">
+                       class="inline-block bg-yellow-500 text-white px-3 py-1.5 md:px-4 md:py-2 text-sm md:text-base rounded hover:bg-yellow-600">
                         Leaderboard
                     </a>
                 </div>
@@ -265,12 +265,12 @@
                 <label class="text-gray-600">Filter by Category:</label>
                 <div class="flex flex-wrap gap-2 mt-2">
                     <a href="{% url 'tracker:habit_list' %}" 
-                       class="inline-flex items-center px-3 py-1 rounded {% if not request.GET.category %}bg-blue-500 text-white{% else %}bg-gray-200{% endif %}">
+                       class="inline-flex items-center px-2 py-1 md:px-3 text-sm md:text-base rounded {% if not request.GET.category %}bg-blue-500 text-white{% else %}bg-gray-200{% endif %}">
                         All
                     </a>
                     {% for category, label in habit_categories %}
                         <a href="{% url 'tracker:habit_list' %}?category={{ category }}" 
-                           class="inline-flex items-center px-3 py-1 rounded {% if request.GET.category == category %}bg-blue-500 text-white{% else %}bg-gray-200{% endif %}">
+                           class="inline-flex items-center px-2 py-1 md:px-3 text-sm md:text-base rounded {% if request.GET.category == category %}bg-blue-500 text-white{% else %}bg-gray-200{% endif %}">
                             {% if category == 'health' %}
                                 <svg class="h-4 w-4 mr-1 {% if request.GET.category == category %}text-white{% else %}text-green-600{% endif %}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
@@ -292,42 +292,4 @@
         </div>
     {% endif %}
 </div>
-
-<!-- Add this script at the bottom of the file, before the endblock -->
-<script>
-document.getElementById('generate-summary')?.addEventListener('click', async function() {
-    this.disabled = true;
-    this.textContent = 'Generating...';
-    
-    try {
-        const response = await fetch(
-            "{% url 'tracker:generate_ai_summary' %}",
-            {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': '{{ csrf_token }}'
-                }
-            }
-        );
-        
-        const data = await response.json();
-        
-        const container = document.getElementById('ai-summary-container');
-        container.innerHTML = `
-            <div class="prose max-w-none">
-                ${data.content}
-            </div>
-            <p class="text-sm text-gray-500 mt-2">
-                Generated just now
-            </p>
-        `;
-    } catch (error) {
-        console.error("Error:", error);
-        alert('Error generating summary. Please try again.');
-    } finally {
-        this.disabled = false;
-        this.textContent = 'Generate New Summary';
-    }
-});
-</script>
 {% endblock %}

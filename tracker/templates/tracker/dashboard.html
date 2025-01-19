@@ -136,7 +136,7 @@
                         <div class="border rounded p-4">
                             <h3 class="font-semibold">{{ stat.category|title }}</h3>
                             <p>Completion Rate: {{ stat.completed|percentage:stat.total|floatformat:1 }}%</p>
-                            <p>Total Habits: {{ habits_summary|filter_by_category:stat.category|length }}</p>
+                            <p>Total Habits: {{ stat.habit_count }}</p>
                         </div>
                     {% endfor %}
                 </div>
@@ -149,7 +149,7 @@
             
             <div id="ai-summary-container" class="bg-gray-50 rounded-lg p-4 mb-4">
                 {% if latest_summary %}
-                    <div class="prose max-w-none">
+                    <div class="prose max-w-none text-sm sm:text-base">
                         {{ latest_summary.content|markdown }}
                     </div>
                     <p class="text-sm text-gray-500 mt-2">
@@ -161,10 +161,12 @@
             </div>
             
             {% if user == viewed_user %}
-                <button id="generate-summary" 
-                        class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors">
-                    Generate New Summary
-                </button>
+                <div class="text-center">
+                    <button id="generate-summary" 
+                            class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors inline-block">
+                        Get Insights
+                    </button>
+                </div>
             {% endif %}
         </div>
 
@@ -173,16 +175,16 @@
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 {% if user == viewed_user %}
                     <a href="{% url 'tracker:habit_create' %}" 
-                       class="inline-block bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                       class="inline-block bg-blue-500 text-white px-3 py-1.5 md:px-4 md:py-2 text-sm md:text-base rounded hover:bg-blue-600">
                         Add New Habit
                     </a>
                     <div class="space-x-4">
                         <a href="{% url 'social:friends_list' %}"
-                           class="inline-block bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600">
+                           class="inline-block bg-purple-500 text-white px-3 py-1.5 md:px-4 md:py-2 text-sm md:text-base rounded hover:bg-purple-600">
                             Friends
                         </a>
                         <a href="{% url 'social:leaderboard' %}"
-                           class="inline-block bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600">
+                           class="inline-block bg-yellow-500 text-white px-3 py-1.5 md:px-4 md:py-2 text-sm md:text-base rounded hover:bg-yellow-600">
                             Leaderboard
                         </a>
                     </div>

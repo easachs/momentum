@@ -184,7 +184,7 @@ class TestHabitViews(TestCase):
         )
         self.assertRedirects(
             response, 
-            reverse('tracker:dashboard', kwargs={'username': self.user.username})
+            reverse('tracker:habit_list')
         )
 
     def test_unauthenticated_user_redirected_to_login(self):

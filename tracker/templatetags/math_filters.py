@@ -31,8 +31,8 @@ def percentage(value, total):
         return 0
 
 @register.filter
-def filter_by_category(habits_summary, category):
+def filter_by_category(habits, category):
     # Handle both QuerySet and list inputs
-    if hasattr(habits_summary, 'filter'):
-        return habits_summary.filter(category=category)
-    return [habit for habit in habits_summary if habit.category == category] 
+    if hasattr(habits, 'filter'):
+        return habits.filter(category=category)
+    return [habit for habit in habits if getattr(habit, 'category', '') == category] 

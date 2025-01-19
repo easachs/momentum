@@ -255,7 +255,7 @@ class HabitCreateView(LoginRequiredMixin, CreateView):
     template_name = "tracker/habit_form.html"
 
     def get_success_url(self):
-        return reverse('tracker:dashboard', kwargs={'username': self.request.user.username})
+        return reverse('tracker:habit_list')
 
     def form_valid(self, form):
         form.instance.user = self.request.user
@@ -412,6 +412,7 @@ class DashboardView(LoginRequiredMixin, DetailView):
                     'category': category,
                     'completed': completed,
                     'total': total,
+                    'habit_count': category_habits.count(),
                     'percentage': round(completed / total * 100 if total > 0 else 0, 1)
                 })
 
