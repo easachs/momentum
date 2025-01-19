@@ -4,6 +4,7 @@ from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.shortcuts import render
 from .models import Friendship
+from tracker.models import Habit
 from django.urls import reverse
 from django.db.models import Q
 
@@ -85,21 +86,22 @@ def friends_list(request):
 def leaderboard(request):
     User = get_user_model()
     users = User.objects.all()
+    selected_category = request.GET.get('category', 'all')
     
     # Calculate stats for each user
     leaderboard_data = []
     for user in users:
         habits = user.habits.all()
-        if not habits:  # Skip users with no habits
+        if selected_category != 'all':
+            habits = habits.filter(category=selected_category)
+            
+        if not habits:  # Skip users with no habits in this category
             continue
             
         total_completions = sum(habit.completions.count() for habit in habits)
         total_possible = sum(habit.get_total_possible_completions() for habit in habits)
         
-        # Calculate completion rate, handling division by zero
         completion_rate = (total_completions / total_possible * 100) if total_possible > 0 else 0
-        
-        # Get the highest streak among all habits
         current_streak = max((habit.current_streak() for habit in habits), default=0)
         
         leaderboard_data.append({
@@ -110,9 +112,10 @@ def leaderboard(request):
             'total_habits': habits.count(),
         })
     
-    # Sort by completion rate (you could add different sorting options later)
     leaderboard_data.sort(key=lambda x: (-x['completion_rate'], -x['total_completions']))
     
     return render(request, 'social/leaderboard.html', {
-        'leaderboard_data': leaderboard_data
+        'leaderboard_data': leaderboard_data,
+        'selected_category': selected_category,
+        'categories': ['all'] + [c[0] for c in Habit.CATEGORY_CHOICES]
     }) 

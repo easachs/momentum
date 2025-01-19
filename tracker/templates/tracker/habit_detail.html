@@ -58,29 +58,31 @@
                     </form>
                 </div>
 
-                <!-- Yesterday's completion -->
-                <div class="border rounded-lg p-4">
-                    <h2 class="font-semibold mb-2">Yesterday</h2>
-                    <form method="post" action="{% url 'tracker:habit_completion_toggle' pk=habit.pk %}">
-                        {% csrf_token %}
-                        <input type="hidden" name="date" value="{{ yesterday|date:'Y-m-d' }}">
-                        <button type="submit" 
-                                class="{% if yesterday_completion %}bg-red-500 hover:bg-red-600{% else %}bg-green-500 hover:bg-green-600{% endif %} text-white px-4 py-2 rounded">
-                            {% if yesterday_completion %}
-                                Mark Incomplete
-                            {% else %}
-                                Mark Complete
-                            {% endif %}
-                        </button>
-                    </form>
-                </div>
+                <!-- Yesterday's completion - only show if habit existed yesterday -->
+                {% if habit.created_at.date <= yesterday %}
+                    <div class="border rounded-lg p-4">
+                        <h2 class="font-semibold mb-2">Yesterday</h2>
+                        <form method="post" action="{% url 'tracker:habit_completion_toggle' pk=habit.pk %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="date" value="{{ yesterday|date:'Y-m-d' }}">
+                            <button type="submit" 
+                                    class="{% if yesterday_completion %}bg-red-500 hover:bg-red-600{% else %}bg-green-500 hover:bg-green-600{% endif %} text-white px-4 py-2 rounded">
+                                {% if yesterday_completion %}
+                                    Mark Incomplete
+                                {% else %}
+                                    Mark Complete
+                                {% endif %}
+                            </button>
+                        </form>
+                    </div>
+                {% endif %}
             </div>
         {% endif %}
 
         <div class="mt-6 flex items-center justify-between">
             <a href="{% url 'tracker:habit_list' username=habit.user.username %}" 
                class="text-blue-600 hover:text-blue-800">
-                &larr; Back to Habits
+                Back to Habits
             </a>
             {% if user == habit.user %}
                 <div class="space-x-2">

@@ -8,17 +8,19 @@
         {% if friend_requests %}
             <div class="mb-8">
                 {% for request in friend_requests %}
-                    <div class="bg-white border rounded-lg p-4 mb-4 flex items-center justify-between">
-                        <span>{{ request.sender.username }} wants to be your friend</span>
-                        <div class="space-x-2">
-                            <a href="{% url 'social:handle_friend_request' request.id 'accept' %}" 
-                               class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
-                                Accept
-                            </a>
-                            <a href="{% url 'social:handle_friend_request' request.id 'decline' %}" 
-                               class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
-                                Decline
-                            </a>
+                    <div class="bg-white border rounded-lg p-4 mb-4">
+                        <div class="flex flex-col sm:flex-row items-center justify-between space-y-4 sm:space-y-0">
+                            <span class="text-center sm:text-left">{{ request.sender.username }} wants to be your friend</span>
+                            <div class="flex space-x-2">
+                                <a href="{% url 'social:handle_friend_request' request.id 'accept' %}" 
+                                   class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+                                    Accept
+                                </a>
+                                <a href="{% url 'social:handle_friend_request' request.id 'decline' %}" 
+                                   class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
+                                    Decline
+                                </a>
+                            </div>
                         </div>
                     </div>
                 {% endfor %}
@@ -318,23 +320,24 @@
             <p class="text-gray-600 text-center py-8">No habits yet.</p>
         {% endif %}
 
+        <!-- Move friends and leaderboard buttons together -->
         <div class="mt-8 space-y-6">
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 {% if user == viewed_user %}
+                    <a href="{% url 'tracker:habit_create' %}" 
+                       class="inline-block bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                        Add New Habit
+                    </a>
                     <div class="space-x-4">
-                        <a href="{% url 'tracker:habit_create' %}" 
-                           class="inline-block bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
-                            Add New Habit
-                        </a>
                         <a href="{% url 'social:friends_list' %}"
                            class="inline-block bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600">
                             Friends
                         </a>
+                        <a href="{% url 'social:leaderboard' %}"
+                           class="inline-block bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600">
+                            Leaderboard 🏆
+                        </a>
                     </div>
-                    <a href="{% url 'social:leaderboard' %}"
-                       class="inline-block bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600">
-                        View Leaderboard 🏆
-                    </a>
                 {% endif %}
             </div>
             
