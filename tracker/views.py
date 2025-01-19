@@ -44,10 +44,14 @@ class HabitListView(LoginRequiredMixin, ListView):
         }
         
         # Get completion analytics
+        earliest_habit = habits.order_by('created_at').first()
+        earliest_date = earliest_habit.created_at.date() if earliest_habit else today
+
         context['analytics'] = {
             'total_habits': habits.count(),
             'total_completions': HabitCompletion.objects.filter(
-                habit__user=self.request.user
+                habit__user=self.request.user,
+                completed_at__gte=today - timedelta(days=7)  # Only look at last 7 days
             ).count(),
             
             # Weekly summary
@@ -62,41 +66,29 @@ class HabitListView(LoginRequiredMixin, ListView):
                 completed_at__gte=start_of_month
             ).count(),
             
-            # Completion rate over time (last 30 days)
-            'daily_stats': HabitCompletion.objects.filter(
-                habit__user=self.request.user,
-                completed_at__gte=thirty_days_ago
-            ).annotate(
-                date=TruncWeek('completed_at')
-            ).values('date').annotate(
-                count=Count('id')
-            ).order_by('date'),
-            
-            # Completion by category
-            'category_stats': []
+            # ... rest of analytics ...
         }
-        
-        # Calculate completion rate percentage based on days since creation
+
+        # Calculate completion rate based on last 7 days
         total_possible = 0
         for habit in habits:
-            days_since_creation = (today - habit.created_at.date()).days + 1
             if habit.frequency == 'daily':
-                total_possible += days_since_creation
+                total_possible += 7  # 7 possible completions in last week
             else:  # weekly
-                total_possible += (days_since_creation + 6) // 7  # Round up to nearest week
-        
+                total_possible += 1  # 1 possible completion in last week
+
         if total_possible > 0:
             context['analytics']['completion_rate'] = (context['analytics']['total_completions'] / total_possible) * 100
         else:
             context['analytics']['completion_rate'] = 0
-        
-        # Original habit list logic
+
+        # Complex query building (similar to Rails scopes)
         habits = habits.annotate(
             completed_today=Count('completions', filter=Q(completions__completed_at=today)),
             completed_this_week=Count('completions', filter=Q(completions__completed_at__gte=start_of_week))
         )
         
-        # Get view mode from URL parameter, default to 'frequency'
+        # View mode handling (similar to Rails params[:view])
         view_mode = self.request.GET.get('view', 'frequency')
         context['view_mode'] = view_mode
         
@@ -157,6 +149,18 @@ class HabitListView(LoginRequiredMixin, ListView):
             }
             for category, stats in category_stats.items()
         ]
+        
+        # Add the rest of the analytics...
+        context['analytics'].update({
+            'daily_stats': HabitCompletion.objects.filter(
+                habit__user=self.request.user,
+                completed_at__gte=thirty_days_ago
+            ).annotate(
+                date=TruncWeek('completed_at')
+            ).values('date').annotate(
+                count=Count('id')
+            ).order_by('date'),
+        })
         
         return context
 

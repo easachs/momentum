@@ -6,13 +6,21 @@ from django.utils import timezone
 from datetime import timedelta
 
 
+# Models in Django are similar to ActiveRecord models in Rails
+# They inherit from models.Model instead of ApplicationRecord
+
 class Habit(models.Model):
+    # Enum-like choices - Similar to Rails enum but defined explicitly
+    # In Rails this might be: enum category: { health: 0, productivity: 1, learning: 2 }
     CATEGORY_CHOICES = [
         ("health", "Health"),
         ("productivity", "Productivity"),
         ("learning", "Learning"),
     ]
 
+    # ForeignKey is equivalent to belongs_to in Rails
+    # on_delete=models.CASCADE is like dependent: :destroy
+    # related_name='habits' creates the inverse has_many (like has_many :habits in User model)
     user = models.ForeignKey(
         get_user_model(),
         on_delete=models.CASCADE,
@@ -20,38 +28,57 @@ class Habit(models.Model):
         null=False,
         blank=False
     )
+
+    # CharField is similar to t.string in Rails migrations
+    # validators are like Rails validations but defined at the field level
     name = models.CharField(
         max_length=100,
-        validators=[MinLengthValidator(3)]  # Ensures name has at least 3 characters
-    )  # Similar to Rails `t.string :name`
+        validators=[MinLengthValidator(3)]  # Rails: validates :name, length: { minimum: 3 }
+    )
+
+    # TextField is like t.text in Rails
+    # blank=True, null=True allows empty values (Rails: allows_nil: true)
     description = models.TextField(blank=True, null=True)
+
+    # Choices field - another enum-like field
+    # In Rails: enum frequency: { daily: 0, weekly: 1 }
     frequency = models.CharField(
         max_length=10,
         choices=[("daily", "Daily"), ("weekly", "Weekly")],
         default="daily",
     )
+
     category = models.CharField(
         max_length=20,
         choices=CATEGORY_CHOICES,
         default="health",
     )
+
+    # auto_now_add is like t.timestamps in Rails (for created_at)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = ['name', 'user']  # This ensures name is unique per user
+        # Compound unique constraint - Rails: validates :name, uniqueness: { scope: :user_id }
+        unique_together = ['name', 'user']
 
+    # String representation - like def to_s in Ruby
     def __str__(self):
         return self.name
 
+    # Similar to Rails' url helpers but more explicit
     def get_absolute_url(self):
         return reverse('tracker:habit_detail', args=[self.pk])
 
+    # Instance methods - similar to Ruby instance methods
     def is_completed_for_date(self, date=None):
+        # Default parameter handling (Ruby: date = Time.current.to_date)
         if date is None:
             date = timezone.now().date()
+        # exists? in Rails
         return self.completions.filter(completed_at=date).exists()
 
     def toggle_completion(self, date=None):
+        # find_or_create_by in Rails
         if date is None:
             date = timezone.now().date()
         completion, created = self.completions.get_or_create(completed_at=date)
@@ -60,23 +87,27 @@ class Habit(models.Model):
         return created
 
     def current_streak(self):
+        # Complex business logic method
+        # Similar to how you'd write it in Ruby, but with Python syntax
         today = timezone.now().date()
         streak = 0
         date = today
 
         if self.frequency == 'daily':
-            # For daily habits, check consecutive days
+            # While loop is similar to Ruby's while
             while self.is_completed_for_date(date):
                 streak += 1
                 date -= timedelta(days=1)
-        else:  # weekly habits
-            # For weekly habits, check consecutive weeks
+        else:  # weekly
             current_week_start = today - timedelta(days=today.weekday())
             week_start = current_week_start
             
-            while True:
+            while True:  # Ruby's loop do
                 week_end = week_start + timedelta(days=6)
-                if self.completions.filter(completed_at__gte=week_start, completed_at__lte=week_end).exists():
+                if self.completions.filter(
+                    completed_at__gte=week_start, 
+                    completed_at__lte=week_end
+                ).exists():
                     streak += 1
                     week_start -= timedelta(days=7)
                 else:
@@ -85,17 +116,21 @@ class Habit(models.Model):
         return streak
 
 
+# Join model - similar to a HABTM or has_many :through in Rails
 class HabitCompletion(models.Model):
+    # belongs_to :habit in Rails
     habit = models.ForeignKey(
         Habit,
-        on_delete=models.CASCADE,
-        related_name='completions'
+        on_delete=models.CASCADE,  # dependent: :destroy
+        related_name='completions'  # has_many :completions
     )
     completed_at = models.DateField()
     
     class Meta:
-        unique_together = ['habit', 'completed_at']  # Prevent duplicate completions
-        ordering = ['-completed_at']  # Most recent first
+        # Compound unique index - Rails: add_index :habit_completions, [:habit_id, :completed_at], unique: true
+        unique_together = ['habit', 'completed_at']
+        # Default ordering - Rails: default_scope { order(completed_at: :desc) }
+        ordering = ['-completed_at']
 
     def __str__(self):
         return f"{self.habit.name} completed on {self.completed_at}"

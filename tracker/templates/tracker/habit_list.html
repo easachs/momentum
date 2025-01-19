@@ -244,6 +244,10 @@
         {% endif %}
     {% endif %}
 
+    {% if not daily_habits and not weekly_habits %}
+        <p class="text-gray-600 text-center py-8">No habits yet.</p>
+    {% endif %}
+
     <a href="{% url 'tracker:habit_create' %}" 
        class="mt-6 inline-block bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
         Add New Habit

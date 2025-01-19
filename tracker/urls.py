@@ -6,7 +6,7 @@ from .views import HabitListView
 app_name = "tracker"
 
 urlpatterns = [
-    path("", HabitListView.as_view(), name="habit_list"),
+    path("", views.HabitListView.as_view(), name="habit_list"),
     path("<int:pk>/", views.HabitDetailView.as_view(), name="habit_detail"),
     path("create/", views.HabitCreateView.as_view(), name="habit_create"),
     path("<int:pk>/update/", views.HabitUpdateView.as_view(), name="habit_update"),

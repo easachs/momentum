@@ -1,7 +1,9 @@
 import pytest
 from django.urls import reverse
-from tracker.models import Habit
+from tracker.models import Habit, HabitCompletion
 from django.contrib.auth import get_user_model
+from django.utils import timezone
+from datetime import timedelta
 
 @pytest.fixture
 def test_user():
@@ -285,3 +287,53 @@ class TestHabitViews:
         url = reverse('tracker:habit_completion_toggle', args=[99999])  # Non-existent ID
         response = client.post(url)
         assert response.status_code == 404 
+
+    def test_view_mode_switching(self, test_user, client):
+        client.force_login(test_user)
+        # Create habits in different categories
+        Habit.objects.create(
+            user=test_user,
+            name="Health Habit",
+            category="health",
+            frequency="daily"
+        )
+        Habit.objects.create(
+            user=test_user,
+            name="Learning Habit",
+            category="learning",
+            frequency="weekly"
+        )
+
+        # Test frequency view (default)
+        response = client.get(reverse('tracker:habit_list'))
+        assert 'Daily' in str(response.content)
+        assert 'Weekly' in str(response.content)
+        assert response.context['view_mode'] == 'frequency'
+
+        # Test category view
+        response = client.get(reverse('tracker:habit_list') + '?view=category')
+        assert 'Health' in str(response.content)
+        assert 'Learning' in str(response.content)
+        assert response.context['view_mode'] == 'category'
+
+    def test_streak_calculation(self, test_user, client):
+        client.force_login(test_user)
+        today = timezone.now().date()
+        habit = Habit.objects.create(
+            user=test_user,
+            name="Daily Habit",
+            frequency="daily"
+        )
+
+        # Create a streak of completions
+        for days_ago in range(3):
+            HabitCompletion.objects.create(
+                habit=habit,
+                completed_at=today - timedelta(days=days_ago)
+            )
+
+        response = client.get(reverse('tracker:habit_list'))
+        content = response.content.decode()
+
+        # Check that streak is displayed
+        assert 'Streak: 3 days' in content 
