@@ -85,4 +85,4 @@ class TestHabitIntegration(TestCase):
     def test_notification_display(self):
         response = self.client.get(reverse('tracker:habit_list', kwargs={'username': self.user.username}))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Not Done') 
+        self.assertContains(response, 'bg-gray-100 text-gray-400') 

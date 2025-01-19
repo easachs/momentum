@@ -165,54 +165,53 @@
                     </h2>
                     <ul class="space-y-4">
                         {% for habit in data.habits %}
-                            <li class="bg-white p-4 rounded-lg shadow flex flex-col sm:flex-row items-start sm:items-center justify-between {% if habit.streak >= 5 %}border-2 border-yellow-500{% endif %}">
-                                <div class="flex-1 mb-2 sm:mb-0">
-                                    <a href="{% url 'tracker:habit_detail' username=viewed_user.username pk=habit.pk %}" class="text-blue-600 hover:text-blue-800">
-                                        <span class="text-xl font-bold">{{ habit.name }}</span>
-                                    </a>
-                                    <span class="ml-2 text-gray-600 block sm:inline">
-                                        <strong>Frequency:</strong> {{ habit.get_frequency_display }}
-                                    </span>
-                                </div>
-                                <div class="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
-                                    {% if habit.frequency == 'daily' %}
+                            <li class="bg-white p-4 rounded-lg shadow {% if habit.streak >= 5 %}border-2 border-yellow-500{% endif %}">
+                                <!-- Create a container for better mobile layout -->
+                                <div class="flex flex-row items-center justify-between gap-4">
+                                    <!-- Left side: Icon, Name, and Streak -->
+                                    <div class="flex flex-col sm:flex-row items-start sm:items-center gap-2 min-w-0">
+                                        <!-- Icon and Name -->
+                                        <div class="flex items-center gap-2 min-w-0">
+                                            <span class="inline-flex items-center flex-shrink-0">
+                                                {% if habit.category == 'health' %}
+                                                    <svg class="h-5 w-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                                                    </svg>
+                                                {% elif habit.category == 'learning' %}
+                                                    <svg class="h-5 w-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                                                    </svg>
+                                                {% else %}
+                                                    <svg class="h-5 w-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                                                    </svg>
+                                                {% endif %}
+                                            </span>
+                                            <a href="{% url 'tracker:habit_detail' username=viewed_user.username pk=habit.pk %}" 
+                                               class="text-blue-600 hover:text-blue-800 truncate">
+                                                <span class="text-xl font-bold">{{ habit.name }}</span>
+                                            </a>
+                                        </div>
+                                        <!-- Streak -->
                                         <span class="text-sm text-gray-600">
-                                            Today's Status: 
-                                            {% if habit.completed_today %}
-                                                <span class="text-green-600">✓ Done</span>
-                                            {% else %}
-                                                <span class="text-red-600">○ Not Done</span>
-                                            {% endif %}
+                                            Streak: {{ habit.streak }} {% if habit.frequency == 'daily' %}{% if habit.streak == 1 %}day{% else %}days{% endif %}{% else %}{% if habit.streak == 1 %}week{% else %}weeks{% endif %}{% endif %}
                                         </span>
-                                    {% else %}
-                                        <span class="text-sm text-gray-600">
-                                            This Week's Status: 
-                                            {% if habit.completed_this_week > 0 %}
-                                                <span class="text-green-600">✓ Done</span>
-                                            {% else %}
-                                                <span class="text-red-600">○ Not Done</span>
-                                            {% endif %}
-                                        </span>
-                                    {% endif %}
-                                    <span class="text-sm text-gray-600">
-                                        Streak: {{ habit.streak }} {% if habit.frequency == 'daily' %}{% if habit.streak == 1 %}day{% else %}days{% endif %}{% else %}{% if habit.streak == 1 %}week{% else %}weeks{% endif %}{% endif %}
-                                    </span>
-                                    <div class="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
-                                        <!-- Status displays -->
-                                        {% if user == viewed_user %}
-                                            <form method="post" action="{% url 'tracker:habit_completion_toggle' pk=habit.pk %}" class="inline">
+                                    </div>
+
+                                    <!-- Right side: Completion Button -->
+                                    {% if user == viewed_user %}
+                                        <div class="flex-shrink-0">
+                                            <form method="post" action="{% url 'tracker:habit_completion_toggle' pk=habit.pk %}" class="inline-flex">
                                                 {% csrf_token %}
                                                 <button type="submit" 
-                                                        class="{% if habit.is_completed_for_date %}bg-red-500 hover:bg-red-600{% else %}bg-green-500 hover:bg-green-600{% endif %} text-white px-3 py-1 rounded text-sm">
-                                                    {% if habit.is_completed_for_date %}
-                                                        Mark Incomplete
-                                                    {% else %}
-                                                        Mark Complete
-                                                    {% endif %}
+                                                        class="p-2 rounded-full transition-all duration-200 {% if habit.is_completed_for_date %}bg-green-200 text-green-700 hover:bg-green-300{% else %}bg-gray-100 text-gray-400 hover:bg-gray-200{% endif %}">
+                                                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                                    </svg>
                                                 </button>
                                             </form>
-                                        {% endif %}
-                                    </div>
+                                        </div>
+                                    {% endif %}
                                 </div>
                             </li>
                         {% endfor %}
@@ -225,43 +224,53 @@
                 <h2 class="text-2xl font-semibold mb-4">Daily</h2>
                 <ul class="space-y-4">
                     {% for habit in daily_habits %}
-                        <li class="bg-white p-4 rounded-lg shadow flex flex-col sm:flex-row items-start sm:items-center justify-between {% if habit.streak >= 5 %}border-2 border-yellow-500{% endif %}">
-                            <div class="flex-1 mb-2 sm:mb-0">
-                                <a href="{% url 'tracker:habit_detail' username=viewed_user.username pk=habit.pk %}" class="text-blue-600 hover:text-blue-800">
-                                    <span class="text-xl font-bold">{{ habit.name }}</span>
-                                </a>
-                                <span class="ml-2 text-gray-600 block sm:inline">
-                                    <strong>Category:</strong> {{ habit.get_category_display }}
-                                </span>
-                            </div>
-                            <div class="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
-                                <span class="text-sm text-gray-600">
-                                    Today's Status: 
-                                    {% if habit.completed_today %}
-                                        <span class="text-green-600">✓ Done</span>
-                                    {% else %}
-                                        <span class="text-red-600">○ Not Done</span>
-                                    {% endif %}
-                                </span>
-                                <span class="text-sm text-gray-600">
-                                    Streak: {{ habit.streak }} {% if habit.streak == 1 %}day{% else %}days{% endif %}
-                                </span>
-                                <div class="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
-                                    <!-- Status displays -->
-                                    {% if user == viewed_user %}
-                                        <form method="post" action="{% url 'tracker:habit_completion_toggle' pk=habit.pk %}" class="inline">
+                        <li class="bg-white p-4 rounded-lg shadow {% if habit.streak >= 5 %}border-2 border-yellow-500{% endif %}">
+                            <!-- Create a container for better mobile layout -->
+                            <div class="flex flex-row items-center justify-between gap-4">
+                                <!-- Left side: Icon, Name, and Streak -->
+                                <div class="flex flex-col sm:flex-row items-start sm:items-center gap-2 min-w-0">
+                                    <!-- Icon and Name -->
+                                    <div class="flex items-center gap-2 min-w-0">
+                                        <span class="inline-flex items-center flex-shrink-0">
+                                            {% if habit.category == 'health' %}
+                                                <svg class="h-5 w-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                                                </svg>
+                                            {% elif habit.category == 'learning' %}
+                                                <svg class="h-5 w-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                                                </svg>
+                                            {% else %}
+                                                <svg class="h-5 w-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                                                </svg>
+                                            {% endif %}
+                                        </span>
+                                        <a href="{% url 'tracker:habit_detail' username=viewed_user.username pk=habit.pk %}" 
+                                           class="text-blue-600 hover:text-blue-800 truncate">
+                                            <span class="text-xl font-bold">{{ habit.name }}</span>
+                                        </a>
+                                    </div>
+                                    <!-- Streak -->
+                                    <span class="text-sm text-gray-600">
+                                        Streak: {{ habit.streak }} {% if habit.streak == 1 %}day{% else %}days{% endif %}
+                                    </span>
+                                </div>
+
+                                <!-- Right side: Completion Button -->
+                                {% if user == viewed_user %}
+                                    <div class="flex-shrink-0">
+                                        <form method="post" action="{% url 'tracker:habit_completion_toggle' pk=habit.pk %}" class="inline-flex">
                                             {% csrf_token %}
                                             <button type="submit" 
-                                                    class="{% if habit.is_completed_for_date %}bg-red-500 hover:bg-red-600{% else %}bg-green-500 hover:bg-green-600{% endif %} text-white px-3 py-1 rounded text-sm">
-                                                {% if habit.is_completed_for_date %}
-                                                    Mark Incomplete
-                                                {% else %}
-                                                    Mark Complete
-                                                {% endif %}
+                                                    class="p-2 rounded-full transition-all duration-200 {% if habit.is_completed_for_date %}bg-green-200 text-green-700 hover:bg-green-300{% else %}bg-gray-100 text-gray-400 hover:bg-gray-200{% endif %}">
+                                                <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                                </svg>
                                             </button>
                                         </form>
-                                    {% endif %}
-                                </div>
+                                    </div>
+                                {% endif %}
                             </div>
                         </li>
                     {% endfor %}
@@ -272,43 +281,53 @@
                 <h2 class="text-2xl font-semibold mt-8 mb-4">Weekly</h2>
                 <ul class="space-y-4">
                     {% for habit in weekly_habits %}
-                        <li class="bg-white p-4 rounded-lg shadow flex flex-col sm:flex-row items-start sm:items-center justify-between {% if habit.streak >= 5 %}border-2 border-yellow-500{% endif %}">
-                            <div class="flex-1 mb-2 sm:mb-0">
-                                <a href="{% url 'tracker:habit_detail' username=viewed_user.username pk=habit.pk %}" class="text-blue-600 hover:text-blue-800">
-                                    <span class="text-xl font-bold">{{ habit.name }}</span>
-                                </a>
-                                <span class="ml-2 text-gray-600 block sm:inline">
-                                    <strong>Category:</strong> {{ habit.get_category_display }}
-                                </span>
-                            </div>
-                            <div class="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
-                                <span class="text-sm text-gray-600">
-                                    This Week's Status: 
-                                    {% if habit.completed_this_week > 0 %}
-                                        <span class="text-green-600">✓ Done</span>
-                                    {% else %}
-                                        <span class="text-red-600">○ Not Done</span>
-                                    {% endif %}
-                                </span>
-                                <span class="text-sm text-gray-600">
-                                    Streak: {{ habit.streak }} {% if habit.streak == 1 %}week{% else %}weeks{% endif %}
-                                </span>
-                                <div class="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
-                                    <!-- Status displays -->
-                                    {% if user == viewed_user %}
-                                        <form method="post" action="{% url 'tracker:habit_completion_toggle' pk=habit.pk %}" class="inline">
+                        <li class="bg-white p-4 rounded-lg shadow {% if habit.streak >= 5 %}border-2 border-yellow-500{% endif %}">
+                            <!-- Create a container for better mobile layout -->
+                            <div class="flex flex-row items-center justify-between gap-4">
+                                <!-- Left side: Icon, Name, and Streak -->
+                                <div class="flex flex-col sm:flex-row items-start sm:items-center gap-2 min-w-0">
+                                    <!-- Icon and Name -->
+                                    <div class="flex items-center gap-2 min-w-0">
+                                        <span class="inline-flex items-center flex-shrink-0">
+                                            {% if habit.category == 'health' %}
+                                                <svg class="h-5 w-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                                                </svg>
+                                            {% elif habit.category == 'learning' %}
+                                                <svg class="h-5 w-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                                                </svg>
+                                            {% else %}
+                                                <svg class="h-5 w-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                                                </svg>
+                                            {% endif %}
+                                        </span>
+                                        <a href="{% url 'tracker:habit_detail' username=viewed_user.username pk=habit.pk %}" 
+                                           class="text-blue-600 hover:text-blue-800 truncate">
+                                            <span class="text-xl font-bold">{{ habit.name }}</span>
+                                        </a>
+                                    </div>
+                                    <!-- Streak -->
+                                    <span class="text-sm text-gray-600">
+                                        Streak: {{ habit.streak }} {% if habit.streak == 1 %}week{% else %}weeks{% endif %}
+                                    </span>
+                                </div>
+
+                                <!-- Right side: Completion Button -->
+                                {% if user == viewed_user %}
+                                    <div class="flex-shrink-0">
+                                        <form method="post" action="{% url 'tracker:habit_completion_toggle' pk=habit.pk %}" class="inline-flex">
                                             {% csrf_token %}
                                             <button type="submit" 
-                                                    class="{% if habit.is_completed_for_date %}bg-red-500 hover:bg-red-600{% else %}bg-green-500 hover:bg-green-600{% endif %} text-white px-3 py-1 rounded text-sm">
-                                                {% if habit.is_completed_for_date %}
-                                                    Mark Incomplete
-                                                {% else %}
-                                                    Mark Complete
-                                                {% endif %}
+                                                    class="p-2 rounded-full transition-all duration-200 {% if habit.is_completed_for_date %}bg-green-200 text-green-700 hover:bg-green-300{% else %}bg-gray-100 text-gray-400 hover:bg-gray-200{% endif %}">
+                                                <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                                </svg>
                                             </button>
                                         </form>
-                                    {% endif %}
-                                </div>
+                                    </div>
+                                {% endif %}
                             </div>
                         </li>
                     {% endfor %}
@@ -335,7 +354,7 @@
                         </a>
                         <a href="{% url 'social:leaderboard' %}"
                            class="inline-block bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600">
-                            Leaderboard 🏆
+                            Leaderboard
                         </a>
                     </div>
                 {% endif %}
@@ -345,12 +364,25 @@
                 <label class="text-gray-600">Filter by Category:</label>
                 <div class="flex flex-wrap gap-2 mt-2">
                     <a href="{% url 'tracker:habit_list' username=viewed_user.username %}" 
-                       class="px-3 py-1 rounded {% if not request.GET.category %}bg-blue-500 text-white{% else %}bg-gray-200{% endif %}">
+                       class="inline-flex items-center px-3 py-1 rounded {% if not request.GET.category %}bg-blue-500 text-white{% else %}bg-gray-200{% endif %}">
                         All
                     </a>
                     {% for category, label in habit_categories %}
                         <a href="{% url 'tracker:habit_list' username=viewed_user.username %}?category={{ category }}" 
-                           class="px-3 py-1 rounded {% if request.GET.category == category %}bg-blue-500 text-white{% else %}bg-gray-200{% endif %}">
+                           class="inline-flex items-center px-3 py-1 rounded {% if request.GET.category == category %}bg-blue-500 text-white{% else %}bg-gray-200{% endif %}">
+                            {% if category == 'health' %}
+                                <svg class="h-4 w-4 mr-1 {% if request.GET.category == category %}text-white{% else %}text-green-600{% endif %}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                                </svg>
+                            {% elif category == 'learning' %}
+                                <svg class="h-4 w-4 mr-1 {% if request.GET.category == category %}text-white{% else %}text-blue-600{% endif %}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                                </svg>
+                            {% else %}
+                                <svg class="h-4 w-4 mr-1 {% if request.GET.category == category %}text-white{% else %}text-purple-600{% endif %}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                                </svg>
+                            {% endif %}
                             {{ label }}
                         </a>
                     {% endfor %}

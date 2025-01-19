@@ -208,8 +208,10 @@ class TestHabitViews(TestCase):
 
     def test_habit_list_shows_completion_status(self):
         self.habit.toggle_completion()
-        response = self.client.get(reverse('tracker:habit_list', kwargs={'username': self.user.username}))
-        self.assertContains(response, 'Done')
+        response = self.client.get(
+            reverse('tracker:habit_list', kwargs={'username': self.user.username})
+        )
+        self.assertContains(response, 'bg-green-200 text-green-700')
 
     def test_habit_detail_shows_completion_status(self):
         self.habit.toggle_completion()
@@ -217,7 +219,7 @@ class TestHabitViews(TestCase):
             reverse('tracker:habit_detail', 
                    kwargs={'username': self.user.username, 'pk': self.habit.pk})
         )
-        self.assertContains(response, 'Mark Incomplete')
+        self.assertContains(response, 'bg-green-200 text-green-700')
 
     def test_view_mode_switching(self):
         response = self.client.get(
