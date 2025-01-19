@@ -28,6 +28,11 @@ class HabitListView(LoginRequiredMixin, ListView):
         
         habits = Habit.objects.filter(user=self.request.user)
         
+        # Add category filter
+        selected_category = self.request.GET.get('category')
+        if selected_category:
+            habits = habits.filter(category=selected_category)
+        
         # Get incomplete habits
         incomplete_daily = habits.filter(
             frequency='daily',
@@ -161,6 +166,9 @@ class HabitListView(LoginRequiredMixin, ListView):
                 count=Count('id')
             ).order_by('date'),
         })
+        
+        # Add category choices for filtering
+        context['habit_categories'] = Habit.CATEGORY_CHOICES
         
         return context
 

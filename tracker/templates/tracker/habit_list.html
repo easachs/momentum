@@ -75,11 +75,24 @@
                     <span class="w-32 text-gray-600">{{ stat.category|title }}</span>
                     <div class="flex-1 bg-gray-200 rounded-full h-4">
                         {% with completion_percent=stat.completed|multiply:100|divide:stat.total %}
-                        <div class="bg-blue-500 h-4 rounded-full" style="width: {{ completion_percent }}%"></div>
+                        <div class="bg-blue-500 h-4 rounded-full" style="width: {{ completion_percent|floatformat:1 }}%"></div>
                         {% endwith %}
                     </div>
                     <span class="ml-4 text-sm text-gray-600">{{ stat.completed }}/{{ stat.total }}</span>
                 </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 class="text-xl font-bold mb-4">Category Insights</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {% for stat in analytics.category_stats %}
+                    <div class="border rounded p-4">
+                        <h3 class="font-semibold">{{ stat.category|title }}</h3>
+                        <p>Completion Rate: {{ stat.completed|percentage:stat.total|floatformat:1 }}%</p>
+                        <p>Total Habits: {{ habits_summary|filter_by_category:stat.category|length }}</p>
+                    </div>
                 {% endfor %}
             </div>
         </div>
@@ -248,9 +261,39 @@
         <p class="text-gray-600 text-center py-8">No habits yet.</p>
     {% endif %}
 
-    <a href="{% url 'tracker:habit_create' %}" 
-       class="mt-6 inline-block bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
-        Add New Habit
-    </a>
+    <div class="mt-8 space-y-6">
+        <a href="{% url 'tracker:habit_create' %}" 
+           class="inline-block bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+            Add New Habit
+        </a>
+
+        <div>
+            <label class="text-gray-600">Filter by Category:</label>
+            <div class="flex flex-wrap gap-2 mt-2">
+                <a href="{% url 'tracker:habit_list' %}" 
+                   class="px-3 py-1 rounded {% if not request.GET.category %}bg-blue-500 text-white{% else %}bg-gray-200{% endif %}">
+                    All
+                </a>
+                {% for category, label in habit_categories %}
+                    <a href="{% url 'tracker:habit_list' %}?category={{ category }}" 
+                       class="px-3 py-1 rounded {% if request.GET.category == category %}bg-blue-500 text-white{% else %}bg-gray-200{% endif %}">
+                        {{ label }}
+                    </a>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div>
+            <label class="text-gray-600">Sort by:</label>
+            <select class="ml-2 rounded border" onchange="window.location.href=this.value">
+                <option value="{% url 'tracker:habit_list' %}?sort=name" {% if request.GET.sort == 'name' %}selected{% endif %}>
+                    Name
+                </option>
+                <option value="{% url 'tracker:habit_list' %}?sort=category" {% if request.GET.sort == 'category' %}selected{% endif %}>
+                    Category
+                </option>
+            </select>
+        </div>
+    </div>
 </div>
 {% endblock %}
