@@ -5,7 +5,7 @@ from django.utils import timezone
 from datetime import timedelta
 from tracker.models import Habit, HabitCompletion
 
-class TestHabitAnalytics(TestCase):
+class TestHabitIntegration(TestCase):
     def setUp(self):
         self.user = get_user_model().objects.create_user(
             username='testuser',
@@ -75,4 +75,14 @@ class TestHabitAnalytics(TestCase):
         analytics = response.context['analytics']
 
         self.assertEqual(analytics['this_week_completions'], 2)  # Today and yesterday
-        self.assertEqual(analytics['this_month_completions'], 4)  # All except the 30-day-old one 
+        self.assertEqual(analytics['this_month_completions'], 4)  # All except the 30-day-old one
+
+    def test_incomplete_habit_notifications(self):
+        response = self.client.get(reverse('tracker:habit_list', kwargs={'username': self.user.username}))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'incomplete')
+
+    def test_notification_display(self):
+        response = self.client.get(reverse('tracker:habit_list', kwargs={'username': self.user.username}))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Not Done') 
