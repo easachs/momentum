@@ -38,7 +38,7 @@ class TestHabitIntegration(TestCase):
         # Complete one habit
         habit1.toggle_completion()
         
-        response = self.client.get(reverse('tracker:habit_list', kwargs={'username': self.user.username}))
+        response = self.client.get(reverse('tracker:habit_list'))
         category_stats = {
             stat['category']: stat 
             for stat in response.context['analytics']['category_stats']
@@ -71,18 +71,26 @@ class TestHabitIntegration(TestCase):
         for date in dates:
             HabitCompletion.objects.create(habit=habit, completed_at=date)
 
-        response = self.client.get(reverse('tracker:habit_list', kwargs={'username': self.user.username}))
+        response = self.client.get(reverse('tracker:habit_list'))
         analytics = response.context['analytics']
 
         self.assertEqual(analytics['this_week_completions'], 2)  # Today and yesterday
         self.assertEqual(analytics['this_month_completions'], 4)  # All except the 30-day-old one
 
     def test_incomplete_habit_notifications(self):
-        response = self.client.get(reverse('tracker:habit_list', kwargs={'username': self.user.username}))
+        response = self.client.get(reverse('tracker:habit_list'))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'incomplete')
 
     def test_notification_display(self):
-        response = self.client.get(reverse('tracker:habit_list', kwargs={'username': self.user.username}))
+        response = self.client.get(reverse('tracker:habit_list'))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'bg-gray-100 text-gray-400') 
+        self.assertContains(response, 'bg-gray-100 text-gray-400')
+
+    def test_habit_creation_flow(self):
+        response = self.client.get(reverse('tracker:habit_create'))
+        # ...
+
+    def test_habit_update_flow(self):
+        response = self.client.get(reverse('tracker:habit_update', kwargs={'pk': self.habit.pk}))
+        # ... 

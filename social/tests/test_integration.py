@@ -28,11 +28,9 @@ class TestSocialIntegration(TestCase):
             frequency="daily"
         )
 
-        # Try to view user2's habits (should not see them)
-        response = self.client.get(
-            reverse('tracker:habit_list', kwargs={'username': self.user2.username})
-        )
-        self.assertNotContains(response, 'Test Habit')
+        # Try to view user2's dashboard (should not see analytics)
+        response = self.client.get(reverse('tracker:dashboard', kwargs={'username': self.user2.username}))
+        self.assertNotContains(response, 'Your Habit Analytics')
 
         # Send friend request
         self.client.get(
@@ -52,11 +50,9 @@ class TestSocialIntegration(TestCase):
         # Login back as user1
         self.client.force_login(self.user1)
 
-        # Now should be able to see user2's habits
-        response = self.client.get(
-            reverse('tracker:habit_list', kwargs={'username': self.user2.username})
-        )
-        self.assertContains(response, 'Test Habit')
+        # Now should be able to see user2's analytics
+        response = self.client.get(reverse('tracker:dashboard', kwargs={'username': self.user2.username}))
+        self.assertContains(response, 'Your Habit Analytics')
 
     def test_leaderboard_completion_update_flow(self):
         # Create habits for both users

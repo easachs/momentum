@@ -14,7 +14,7 @@ def send_friend_request(request, username):
     
     if receiver == request.user:
         messages.error(request, "You can't send a friend request to yourself!")
-        return redirect('tracker:habit_list', username=username)
+        return redirect('tracker:dashboard', username=username)
         
     friendship, created = Friendship.objects.get_or_create(
         sender=request.user,
@@ -34,7 +34,7 @@ def send_friend_request(request, username):
             friendship.save()
             messages.success(request, f"Friend request sent to {receiver.username}! 🤝")
     
-    return redirect('tracker:habit_list', username=username)
+    return redirect('tracker:dashboard', username=username)
 
 @login_required
 def handle_friend_request(request, friendship_id, action):
@@ -54,7 +54,7 @@ def handle_friend_request(request, friendship_id, action):
         friendship.save()
         messages.info(request, f"Friend request from {friendship.sender.username} declined")
         
-    return redirect('tracker:habit_list', username=request.user.username)
+    return redirect('tracker:dashboard', username=request.user.username)
 
 @login_required
 def friends_list(request):

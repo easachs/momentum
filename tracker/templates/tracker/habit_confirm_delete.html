@@ -10,8 +10,8 @@
         <form method="post" class="space-y-4">
             {% csrf_token %}
             <div class="flex justify-between items-center">
-                <a href="{% url 'tracker:habit_list' username=user.username %}" 
-                   class="text-blue-600 hover:text-blue-800">
+                <a href="{% url 'tracker:habit_list' %}" 
+                   class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">
                     Cancel
                 </a>
                 <button type="submit" 

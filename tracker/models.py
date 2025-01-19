@@ -69,7 +69,7 @@ class Habit(models.Model):
 
     # Similar to Rails' url helpers but more explicit
     def get_absolute_url(self):
-        return reverse('tracker:habit_detail', kwargs={'username': self.user.username, 'pk': self.pk})
+        return reverse('tracker:habit_detail', kwargs={'pk': self.pk})
 
     # Instance methods - similar to Ruby instance methods
     def is_completed_for_date(self, date=None):

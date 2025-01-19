@@ -50,14 +50,14 @@
                 {% for friendship in friends %}
                     {% if friendship.sender == user %}
                         <div class="bg-white rounded-lg shadow p-4">
-                            <a href="{% url 'tracker:habit_list' username=friendship.receiver.username %}" 
+                            <a href="{% url 'tracker:dashboard' username=friendship.receiver.username %}" 
                                class="text-lg text-blue-600 hover:text-blue-800">
                                 {{ friendship.receiver.username }}
                             </a>
                         </div>
                     {% else %}
                         <div class="bg-white rounded-lg shadow p-4">
-                            <a href="{% url 'tracker:habit_list' username=friendship.sender.username %}" 
+                            <a href="{% url 'tracker:dashboard' username=friendship.sender.username %}" 
                                class="text-lg text-blue-600 hover:text-blue-800">
                                 {{ friendship.sender.username }}
                             </a>

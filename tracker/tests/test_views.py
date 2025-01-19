@@ -85,14 +85,14 @@ class TestHabitViews(TestCase):
         self.assertTrue(Habit.objects.filter(pk=self.habit.pk).exists())
 
     def test_toggle_completion_view(self):
-        url = reverse('tracker:habit_completion_toggle', args=[self.habit.pk])
+        url = reverse('tracker:toggle_completion', args=[self.habit.pk])
         
         # Initially not completed
         self.assertFalse(self.habit.is_completed_for_date())
         
         # Toggle to completed
         response = self.client.post(url)
-        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.status_code, 302)  # Redirect after toggle
         self.habit.refresh_from_db()
         self.assertTrue(self.habit.is_completed_for_date())
         
@@ -104,24 +104,24 @@ class TestHabitViews(TestCase):
 
     def test_toggle_completion_requires_login(self):
         self.client.logout()
-        url = reverse('tracker:habit_completion_toggle', args=[self.habit.pk])
+        url = reverse('tracker:toggle_completion', args=[self.habit.pk])
         response = self.client.post(url)
         self.assertEqual(response.status_code, 302)
         self.assertIn('/accounts/login/', response.url)
 
     def test_toggle_completion_with_invalid_habit_id(self):
-        url = reverse('tracker:habit_completion_toggle', args=[99999])
+        url = reverse('tracker:toggle_completion', args=[99999])
         response = self.client.post(url)
         self.assertEqual(response.status_code, 404)
 
     def test_habit_list_view_requires_login(self):
-        self.client.logout()  # Make sure to log out first
-        response = self.client.get(reverse('tracker:habit_list', kwargs={'username': self.user.username}))
+        self.client.logout()
+        response = self.client.get(reverse('tracker:habit_list'))
         self.assertEqual(response.status_code, 302)
         self.assertIn('/accounts/login/', response.url)
 
     def test_habit_list_view_shows_user_habits(self):
-        response = self.client.get(reverse('tracker:habit_list', kwargs={'username': self.user.username}))
+        response = self.client.get(reverse('tracker:habit_list'))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Test Habit')
 
@@ -132,7 +132,7 @@ class TestHabitViews(TestCase):
             password='testpass123'
         )
         self.client.force_login(other_user)
-        response = self.client.get(reverse('tracker:habit_list', kwargs={'username': self.user.username}))
+        response = self.client.get(reverse('tracker:habit_list'))
         self.assertEqual(response.status_code, 200)
         self.assertNotContains(response, 'Test Habit')
 
@@ -166,14 +166,13 @@ class TestHabitViews(TestCase):
             password='testpass123'
         )
         self.client.force_login(new_user)
-        response = self.client.get(reverse('tracker:habit_list', kwargs={'username': new_user.username}))
+        response = self.client.get(reverse('tracker:habit_list'))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'No habits yet')
 
     def test_habit_detail_view(self):
         response = self.client.get(
-            reverse('tracker:habit_detail', 
-                   kwargs={'username': self.user.username, 'pk': self.habit.pk})
+            reverse('tracker:habit_detail', kwargs={'pk': self.habit.pk})
         )
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Test Habit')
@@ -181,27 +180,23 @@ class TestHabitViews(TestCase):
     def test_redirect_after_create(self):
         response = self.client.post(
             reverse('tracker:habit_create'),
-            {
-                'name': 'New Habit',
-                'frequency': 'daily',
-                'category': 'health'
-            }
+            {'name': 'New Habit', 'frequency': 'daily', 'category': 'health'}
         )
         self.assertRedirects(
             response, 
-            reverse('tracker:habit_list', kwargs={'username': self.user.username})
+            reverse('tracker:dashboard', kwargs={'username': self.user.username})
         )
 
     def test_unauthenticated_user_redirected_to_login(self):
         self.client.logout()  # Make sure to log out first
-        response = self.client.get(reverse('tracker:habit_list', kwargs={'username': self.user.username}))
+        response = self.client.get(reverse('tracker:habit_list'))
         self.assertEqual(response.status_code, 302)
         self.assertIn('/accounts/login/', response.url)
 
     def test_toggle_completion_preserves_referer(self):
-        referer = reverse('tracker:habit_list', kwargs={'username': self.user.username})
+        referer = reverse('tracker:habit_list')
         response = self.client.post(
-            reverse('tracker:habit_completion_toggle', kwargs={'pk': self.habit.pk}),
+            reverse('tracker:toggle_completion', kwargs={'pk': self.habit.pk}),
             HTTP_REFERER=referer
         )
         self.assertRedirects(response, referer)
@@ -209,21 +204,20 @@ class TestHabitViews(TestCase):
     def test_habit_list_shows_completion_status(self):
         self.habit.toggle_completion()
         response = self.client.get(
-            reverse('tracker:habit_list', kwargs={'username': self.user.username})
+            reverse('tracker:habit_list')
         )
         self.assertContains(response, 'bg-green-200 text-green-700')
 
     def test_habit_detail_shows_completion_status(self):
         self.habit.toggle_completion()
         response = self.client.get(
-            reverse('tracker:habit_detail', 
-                   kwargs={'username': self.user.username, 'pk': self.habit.pk})
+            reverse('tracker:habit_detail', kwargs={'pk': self.habit.pk})
         )
         self.assertContains(response, 'bg-green-200 text-green-700')
 
     def test_view_mode_switching(self):
         response = self.client.get(
-            reverse('tracker:habit_list', kwargs={'username': self.user.username}) + '?view=category'
+            reverse('tracker:habit_list') + '?view=category'
         )
         self.assertEqual(response.status_code, 200)
 
@@ -237,5 +231,5 @@ class TestHabitViews(TestCase):
                 completed_at=today - timedelta(days=i)
             )
         
-        response = self.client.get(reverse('tracker:habit_list', kwargs={'username': self.user.username}))
+        response = self.client.get(reverse('tracker:habit_list'))
         self.assertContains(response, 'Streak: 3') 

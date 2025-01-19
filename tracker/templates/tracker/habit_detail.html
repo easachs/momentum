@@ -28,7 +28,7 @@
             {% if user == habit.user %}
                 <div class="flex items-center gap-2">
                     <!-- Today's completion -->
-                    <form method="post" action="{% url 'tracker:habit_completion_toggle' pk=habit.pk %}" class="inline-flex">
+                    <form method="post" action="{% url 'tracker:toggle_completion' pk=habit.pk %}" class="inline-flex">
                         {% csrf_token %}
                         <input type="hidden" name="date" value="{{ today|date:'Y-m-d' }}">
                         <button type="submit" 
@@ -41,7 +41,7 @@
 
                     <!-- Yesterday's completion (if habit is older than a day) -->
                     {% if habit.created_at.date <= yesterday %}
-                        <form method="post" action="{% url 'tracker:habit_completion_toggle' pk=habit.pk %}" class="inline-flex">
+                        <form method="post" action="{% url 'tracker:toggle_completion' pk=habit.pk %}" class="inline-flex">
                             {% csrf_token %}
                             <input type="hidden" name="date" value="{{ yesterday|date:'Y-m-d' }}">
                             <button type="submit" 
@@ -104,9 +104,9 @@
 
         <!-- Back to Habits link -->
         <div class="mt-6">
-            <a href="{% url 'tracker:habit_list' username=habit.user.username %}" 
+            <a href="{% url 'tracker:habit_list' %}" 
                class="text-blue-600 hover:text-blue-800">
-                ← Back to Habits
+                Back to Habits
             </a>
         </div>
     </div>

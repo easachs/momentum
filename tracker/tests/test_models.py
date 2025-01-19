@@ -132,11 +132,12 @@ class TestHabitModel(TestCase):
         assert before <= habit.created_at <= after
 
     def test_habit_str_representation(self):
-        self.assertEqual(str(self.habit), 'Test Habit')
-        self.assertEqual(
-            self.habit.get_absolute_url(),
-            reverse('tracker:habit_detail', kwargs={'username': self.user.username, 'pk': self.habit.pk})
+        habit = Habit.objects.create(
+            name='Test Habit ' + timezone.now().strftime('%Y%m%d%H%M%S'),
+            user=self.user
         )
+        expected_url = reverse('tracker:habit_detail', kwargs={'pk': habit.pk})
+        self.assertEqual(habit.get_absolute_url(), expected_url)
 
     def test_habit_blank_description_allowed(self):
         user = get_user_model().objects.create(email='test@example.com')

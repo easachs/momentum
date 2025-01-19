@@ -30,53 +30,27 @@ class HabitListView(LoginRequiredMixin, ListView):
     context_object_name = 'habits_summary'
 
     def get_queryset(self):
-        # Get the user whose habits we want to view
-        username = self.kwargs.get('username')
-        self.viewed_user = get_object_or_404(get_user_model(), username=username)
-        
-        # Check if the logged-in user can view these habits
-        if self.viewed_user == self.request.user:
-            return Habit.objects.filter(user=self.viewed_user)
-        
-        # Check if they're friends
-        friendship = Friendship.objects.filter(
-            (Q(sender=self.request.user, receiver=self.viewed_user) |
-             Q(sender=self.viewed_user, receiver=self.request.user)),
-            status='accepted'
-        ).first()
-        
-        if friendship:
-            return Habit.objects.filter(user=self.viewed_user)
-        
-        return Habit.objects.none()
+        return Habit.objects.filter(user=self.request.user)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['viewed_user'] = self.viewed_user
+        context['viewed_user'] = self.request.user
         
         # Add friendship status
-        if self.viewed_user != self.request.user:
+        if self.request.user != self.request.user:
             friendship = Friendship.objects.filter(
-                (Q(sender=self.request.user, receiver=self.viewed_user) |
-                 Q(sender=self.viewed_user, receiver=self.request.user))
+                (Q(sender=self.request.user, receiver=self.request.user) |
+                 Q(sender=self.request.user, receiver=self.request.user))
             ).first()
             
             context['friendship'] = friendship
-            context['can_send_request'] = not friendship
-        
-        # Add friend request notifications for the logged-in user
-        if self.viewed_user == self.request.user:
-            context['friend_requests'] = Friendship.objects.filter(
-                receiver=self.request.user,
-                status='pending'
-            )
         
         today = timezone.now().date()
         start_of_week = today - timezone.timedelta(days=today.weekday())
         start_of_month = today.replace(day=1)
         thirty_days_ago = today - timedelta(days=30)
         
-        habits = Habit.objects.filter(user=self.viewed_user)
+        habits = Habit.objects.filter(user=self.request.user)
         
         # Add category filter
         selected_category = self.request.GET.get('category')
@@ -126,13 +100,13 @@ class HabitListView(LoginRequiredMixin, ListView):
             
             # Weekly summary
             'this_week_completions': HabitCompletion.objects.filter(
-                habit__user=self.viewed_user,
+                habit__user=self.request.user,
                 completed_at__gte=start_of_week
             ).count(),
             
             # Monthly summary
             'this_month_completions': HabitCompletion.objects.filter(
-                habit__user=self.viewed_user,
+                habit__user=self.request.user,
                 completed_at__gte=start_of_month
             ).count(),
         }
@@ -182,7 +156,7 @@ class HabitListView(LoginRequiredMixin, ListView):
             category_stats[category] = {
                 'total': 0,
                 'completed': HabitCompletion.objects.filter(
-                    habit__user=self.viewed_user,
+                    habit__user=self.request.user,
                     habit__category=category
                 ).count()
             }
@@ -208,7 +182,7 @@ class HabitListView(LoginRequiredMixin, ListView):
         # Add the rest of the analytics...
         context['analytics'].update({
             'daily_stats': HabitCompletion.objects.filter(
-                habit__user=self.viewed_user,
+                habit__user=self.request.user,
                 completed_at__gte=thirty_days_ago
             ).annotate(
                 date=TruncWeek('completed_at')
@@ -221,7 +195,7 @@ class HabitListView(LoginRequiredMixin, ListView):
         context['habit_categories'] = Habit.CATEGORY_CHOICES
 
         # Add latest AI summary to context
-        if self.viewed_user == self.request.user:
+        if self.request.user == self.request.user:
             context['latest_summary'] = AIHabitSummary.objects.filter(
                 user=self.request.user
             ).first()
@@ -281,7 +255,7 @@ class HabitCreateView(LoginRequiredMixin, CreateView):
     template_name = "tracker/habit_form.html"
 
     def get_success_url(self):
-        return reverse('tracker:habit_list', kwargs={'username': self.request.user.username})
+        return reverse('tracker:dashboard', kwargs={'username': self.request.user.username})
 
     def form_valid(self, form):
         form.instance.user = self.request.user
@@ -294,7 +268,7 @@ class HabitUpdateView(LoginRequiredMixin, UpdateView):
     template_name = "tracker/habit_form.html"
     
     def get_success_url(self):
-        return reverse('tracker:habit_list', kwargs={'username': self.request.user.username})
+        return reverse('tracker:dashboard', kwargs={'username': self.request.user.username})
 
     def get_queryset(self):
         return Habit.objects.filter(user=self.request.user)
@@ -305,7 +279,7 @@ class HabitDeleteView(LoginRequiredMixin, DeleteView):
     template_name = "tracker/habit_confirm_delete.html"
     
     def get_success_url(self):
-        return reverse('tracker:habit_list', kwargs={'username': self.request.user.username})
+        return reverse('tracker:dashboard', kwargs={'username': self.request.user.username})
 
     def get_queryset(self):
         return Habit.objects.filter(user=self.request.user)
@@ -324,13 +298,13 @@ def toggle_habit_completion(request, pk):
     referer = request.META.get('HTTP_REFERER')
     if referer:
         return redirect(referer)
-    return redirect('tracker:habit_detail', username=request.user.username, pk=pk)
+    return redirect('tracker:habit_detail', pk=pk)
 
 
 def root_redirect(request):
-    """Redirect root URL to either habit list or login page"""
+    """Redirect root URL to either dashboard or login page"""
     if request.user.is_authenticated:
-        return redirect('tracker:habit_list', username=request.user.username)
+        return redirect('tracker:dashboard', username=request.user.username)
     return redirect('account_login')
 
 
@@ -365,3 +339,92 @@ def generate_ai_summary(request):
         return JsonResponse({
             'error': 'An unexpected error occurred'
         }, status=500)
+
+
+class DashboardView(LoginRequiredMixin, DetailView):
+    model = get_user_model()
+    template_name = 'tracker/dashboard.html'
+    context_object_name = 'viewed_user'
+    slug_field = 'username'
+    slug_url_kwarg = 'username'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        viewed_user = self.get_object()
+        
+        # Add friendship context if viewing another user's dashboard
+        if self.request.user != viewed_user:
+            context['friendship'] = Friendship.objects.filter(
+                (Q(sender=self.request.user) & Q(receiver=viewed_user)) |
+                (Q(sender=viewed_user) & Q(receiver=self.request.user))
+            ).first()
+
+        # Add friend requests if viewing own dashboard
+        if self.request.user == viewed_user:
+            context['friend_requests'] = Friendship.objects.filter(
+                receiver=self.request.user,
+                status='pending'
+            )
+
+        # Add analytics and AI summary if user has permission
+        if self.request.user == viewed_user or (context.get('friendship') and context['friendship'].status == 'accepted'):
+            # Add analytics context
+            context.update(self._get_analytics_context(viewed_user))
+            
+            # Add latest AI summary
+            context['latest_summary'] = AIHabitSummary.objects.filter(
+                user=viewed_user
+            ).first()
+
+        return context
+
+    def _get_analytics_context(self, user):
+        """Get analytics data for the dashboard"""
+        today = timezone.now().date()
+        thirty_days_ago = today - timedelta(days=30)
+        start_of_week = today - timedelta(days=today.weekday())
+        start_of_month = today.replace(day=1)
+
+        # Get all habits and completions
+        habits = Habit.objects.filter(user=user)
+        completions = HabitCompletion.objects.filter(habit__user=user)
+
+        # Calculate completion rates and stats
+        total_completions = completions.count()
+        total_possible = sum(
+            (today - habit.created_at.date()).days + 1 if habit.frequency == 'daily'
+            else ((today - habit.created_at.date()).days + 7) // 7
+            for habit in habits
+        )
+
+        # Get category stats
+        category_stats = []
+        for category, label in Habit.CATEGORY_CHOICES:
+            category_habits = habits.filter(category=category)
+            if category_habits.exists():
+                completed = completions.filter(habit__category=category).count()
+                total = sum(
+                    (today - habit.created_at.date()).days + 1 if habit.frequency == 'daily'
+                    else ((today - habit.created_at.date()).days + 7) // 7
+                    for habit in category_habits
+                )
+                category_stats.append({
+                    'category': category,
+                    'completed': completed,
+                    'total': total,
+                    'percentage': round(completed / total * 100 if total > 0 else 0, 1)
+                })
+
+        # Calculate best streak across all habits
+        best_streak = max((habit.current_streak() for habit in habits), default=0)
+
+        return {
+            'analytics': {
+                'total_habits': habits.count(),
+                'completion_rate': round(total_completions / total_possible * 100 if total_possible > 0 else 0, 1),
+                'this_week_completions': completions.filter(completed_at__gte=start_of_week).count(),
+                'this_month_completions': completions.filter(completed_at__gte=start_of_month).count(),
+                'category_stats': category_stats,
+                'best_streak': best_streak
+            }
+        }

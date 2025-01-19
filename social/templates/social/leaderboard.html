@@ -37,7 +37,7 @@
                             {% endif %}
                         </td>
                         <td class="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            <a href="{% url 'tracker:habit_list' username=entry.user.username %}" 
+                            <a href="{% url 'tracker:dashboard' username=entry.user.username %}" 
                                class="text-blue-600 hover:text-blue-800">
                                 {{ entry.user.username }}
                             </a>

@@ -23,7 +23,10 @@
         <div class="container mx-auto px-4">
             <div class="flex justify-between items-center py-4 flex-wrap">
                 {% if user.is_authenticated %}
-                    <a href="{% url 'tracker:habit_list' username=user.username %}" class="text-xl font-bold">Momentum</a>
+                    <div class="flex items-center gap-6">
+                        <a href="{% url 'tracker:dashboard' username=user.username %}" class="text-xl font-bold">Momentum</a>
+                        <a href="{% url 'tracker:habit_list' %}" class="text-blue-600 hover:text-blue-800">Habits</a>
+                    </div>
                 {% else %}
                     <a href="{% url 'root' %}" class="text-xl font-bold">Momentum</a>
                 {% endif %}
