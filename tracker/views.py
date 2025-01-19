@@ -47,12 +47,27 @@ class HabitListView(LoginRequiredMixin, ListView):
         earliest_habit = habits.order_by('created_at').first()
         earliest_date = earliest_habit.created_at.date() if earliest_habit else today
 
+        # Calculate total possible completions and actual completions
+        total_possible = 0
+        total_completions = 0
+        for habit in habits:
+            days_since_creation = (today - habit.created_at.date()).days + 1
+            if habit.frequency == 'daily':
+                total_possible += days_since_creation
+            else:  # weekly
+                total_possible += (days_since_creation + 6) // 7  # Round up to nearest week
+
+            # Count actual completions for this habit
+            completions = HabitCompletion.objects.filter(
+                habit=habit,
+                completed_at__gte=habit.created_at.date()
+            ).count()
+            total_completions += completions
+
         context['analytics'] = {
             'total_habits': habits.count(),
-            'total_completions': HabitCompletion.objects.filter(
-                habit__user=self.request.user,
-                completed_at__gte=today - timedelta(days=7)  # Only look at last 7 days
-            ).count(),
+            'total_completions': total_completions,
+            'completion_rate': (total_completions / total_possible * 100) if total_possible > 0 else 0,
             
             # Weekly summary
             'this_week_completions': HabitCompletion.objects.filter(
@@ -65,22 +80,7 @@ class HabitListView(LoginRequiredMixin, ListView):
                 habit__user=self.request.user,
                 completed_at__gte=start_of_month
             ).count(),
-            
-            # ... rest of analytics ...
         }
-
-        # Calculate completion rate based on last 7 days
-        total_possible = 0
-        for habit in habits:
-            if habit.frequency == 'daily':
-                total_possible += 7  # 7 possible completions in last week
-            else:  # weekly
-                total_possible += 1  # 1 possible completion in last week
-
-        if total_possible > 0:
-            context['analytics']['completion_rate'] = (context['analytics']['total_completions'] / total_possible) * 100
-        else:
-            context['analytics']['completion_rate'] = 0
 
         # Complex query building (similar to Rails scopes)
         habits = habits.annotate(
@@ -167,10 +167,27 @@ class HabitListView(LoginRequiredMixin, ListView):
 
 class HabitDetailView(LoginRequiredMixin, DetailView):
     model = Habit
-    template_name = "tracker/habit_detail.html"  # Rails equivalent: show.html.erb
+    template_name = "tracker/habit_detail.html"
 
-    def get_queryset(self):
-        return Habit.objects.filter(user=self.request.user)
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        today = timezone.now().date()
+        yesterday = today - timedelta(days=1)
+        habit = self.get_object()
+
+        context.update({
+            'today': today,
+            'yesterday': yesterday,
+            'today_completion': HabitCompletion.objects.filter(
+                habit=habit,
+                completed_at=today
+            ).exists(),
+            'yesterday_completion': HabitCompletion.objects.filter(
+                habit=habit,
+                completed_at=yesterday
+            ).exists(),
+        })
+        return context
 
 
 class HabitCreateView(LoginRequiredMixin, CreateView):
@@ -206,8 +223,11 @@ class HabitDeleteView(LoginRequiredMixin, DeleteView):
 @login_required
 def toggle_habit_completion(request, pk):
     habit = get_object_or_404(Habit, pk=pk, user=request.user)
-    habit.toggle_completion()
+    date = request.POST.get('date')
+    if date:
+        habit.toggle_completion(timezone.datetime.strptime(date, '%Y-%m-%d').date())
+    else:
+        habit.toggle_completion()
     
-    # Simply redirect back to the previous page
     referer = request.META.get('HTTP_REFERER')
     return redirect(referer) if referer else redirect('tracker:habit_detail', pk=pk)
