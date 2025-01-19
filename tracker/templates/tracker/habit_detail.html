@@ -39,57 +39,61 @@
         </div>
 
         <!-- Completion toggles -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <!-- Today's completion -->
-            <div class="border rounded-lg p-4">
-                <h2 class="font-semibold mb-2">Today</h2>
-                <form method="post" action="{% url 'tracker:habit_completion_toggle' habit.pk %}" class="inline">
-                    {% csrf_token %}
-                    <input type="hidden" name="date" value="{{ today|date:'Y-m-d' }}">
-                    <button type="submit" 
-                            class="{% if today_completion %}bg-red-500 hover:bg-red-600{% else %}bg-green-500 hover:bg-green-600{% endif %} text-white px-4 py-2 rounded">
-                        {% if today_completion %}
-                            Mark Incomplete
-                        {% else %}
-                            Mark Complete
-                        {% endif %}
-                    </button>
-                </form>
-            </div>
+        {% if user == habit.user %}
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <!-- Today's completion -->
+                <div class="border rounded-lg p-4">
+                    <h2 class="font-semibold mb-2">Today</h2>
+                    <form method="post" action="{% url 'tracker:habit_completion_toggle' pk=habit.pk %}" class="inline">
+                        {% csrf_token %}
+                        <input type="hidden" name="date" value="{{ today|date:'Y-m-d' }}">
+                        <button type="submit" 
+                                class="{% if today_completion %}bg-red-500 hover:bg-red-600{% else %}bg-green-500 hover:bg-green-600{% endif %} text-white px-4 py-2 rounded">
+                            {% if today_completion %}
+                                Mark Incomplete
+                            {% else %}
+                                Mark Complete
+                            {% endif %}
+                        </button>
+                    </form>
+                </div>
 
-            <!-- Yesterday's completion -->
-            <div class="border rounded-lg p-4">
-                <h2 class="font-semibold mb-2">Yesterday</h2>
-                <form method="post" action="{% url 'tracker:habit_completion_toggle' habit.pk %}" class="inline">
-                    {% csrf_token %}
-                    <input type="hidden" name="date" value="{{ yesterday|date:'Y-m-d' }}">
-                    <button type="submit" 
-                            class="{% if yesterday_completion %}bg-red-500 hover:bg-red-600{% else %}bg-green-500 hover:bg-green-600{% endif %} text-white px-4 py-2 rounded">
-                        {% if yesterday_completion %}
-                            Mark Incomplete
-                        {% else %}
-                            Mark Complete
-                        {% endif %}
-                    </button>
-                </form>
+                <!-- Yesterday's completion -->
+                <div class="border rounded-lg p-4">
+                    <h2 class="font-semibold mb-2">Yesterday</h2>
+                    <form method="post" action="{% url 'tracker:habit_completion_toggle' pk=habit.pk %}" class="inline">
+                        {% csrf_token %}
+                        <input type="hidden" name="date" value="{{ yesterday|date:'Y-m-d' }}">
+                        <button type="submit" 
+                                class="{% if yesterday_completion %}bg-red-500 hover:bg-red-600{% else %}bg-green-500 hover:bg-green-600{% endif %} text-white px-4 py-2 rounded">
+                            {% if yesterday_completion %}
+                                Mark Incomplete
+                            {% else %}
+                                Mark Complete
+                            {% endif %}
+                        </button>
+                    </form>
+                </div>
             </div>
-        </div>
+        {% endif %}
 
         <div class="mt-6 flex items-center justify-between">
-            <a href="{% url 'tracker:habit_list' %}" 
-               class="text-blue-500 hover:text-blue-700">
-                Back to Habits
+            <a href="{% url 'tracker:habit_list' username=habit.user.username %}" 
+               class="text-blue-600 hover:text-blue-800">
+                &larr; Back to Habits
             </a>
-            <div class="space-x-2">
-                <a href="{% url 'tracker:habit_update' habit.pk %}" 
-                   class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
-                    Edit
-                </a>
-                <a href="{% url 'tracker:habit_delete' habit.pk %}" 
-                   class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
-                    Delete
-                </a>
-            </div>
+            {% if user == habit.user %}
+                <div class="space-x-2">
+                    <a href="{% url 'tracker:habit_update' habit.pk %}" 
+                       class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                        Edit
+                    </a>
+                    <a href="{% url 'tracker:habit_delete' habit.pk %}" 
+                       class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
+                        Delete
+                    </a>
+                </div>
+            {% endif %}
         </div>
     </div>
 </div>

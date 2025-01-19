@@ -10,6 +10,10 @@ from datetime import datetime, timedelta
 from django.utils import timezone
 from django.db.models import Count, Q
 from django.db.models.functions import TruncWeek, TruncMonth
+from django.contrib import messages
+from social.models import Friendship
+from django.contrib.auth import get_user_model
+from django.urls import reverse
 
 from .models import Habit, HabitCompletion
 
@@ -19,14 +23,54 @@ class HabitListView(LoginRequiredMixin, ListView):
     template_name = "tracker/habit_list.html"
     context_object_name = 'habits_summary'
 
+    def get_queryset(self):
+        # Get the user whose habits we want to view
+        username = self.kwargs.get('username')
+        self.viewed_user = get_object_or_404(get_user_model(), username=username)
+        
+        # Check if the logged-in user can view these habits
+        if self.viewed_user == self.request.user:
+            return Habit.objects.filter(user=self.viewed_user)
+        
+        # Check if they're friends
+        friendship = Friendship.objects.filter(
+            (Q(sender=self.request.user, receiver=self.viewed_user) |
+             Q(sender=self.viewed_user, receiver=self.request.user)),
+            status='accepted'
+        ).first()
+        
+        if friendship:
+            return Habit.objects.filter(user=self.viewed_user)
+        
+        return Habit.objects.none()
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        context['viewed_user'] = self.viewed_user
+        
+        # Add friendship status
+        if self.viewed_user != self.request.user:
+            friendship = Friendship.objects.filter(
+                (Q(sender=self.request.user, receiver=self.viewed_user) |
+                 Q(sender=self.viewed_user, receiver=self.request.user))
+            ).first()
+            
+            context['friendship'] = friendship
+            context['can_send_request'] = not friendship
+        
+        # Add friend request notifications for the logged-in user
+        if self.viewed_user == self.request.user:
+            context['friend_requests'] = Friendship.objects.filter(
+                receiver=self.request.user,
+                status='pending'
+            )
+        
         today = timezone.now().date()
         start_of_week = today - timezone.timedelta(days=today.weekday())
         start_of_month = today.replace(day=1)
         thirty_days_ago = today - timedelta(days=30)
         
-        habits = Habit.objects.filter(user=self.request.user)
+        habits = Habit.objects.filter(user=self.viewed_user)
         
         # Add category filter
         selected_category = self.request.GET.get('category')
@@ -76,13 +120,13 @@ class HabitListView(LoginRequiredMixin, ListView):
             
             # Weekly summary
             'this_week_completions': HabitCompletion.objects.filter(
-                habit__user=self.request.user,
+                habit__user=self.viewed_user,
                 completed_at__gte=start_of_week
             ).count(),
             
             # Monthly summary
             'this_month_completions': HabitCompletion.objects.filter(
-                habit__user=self.request.user,
+                habit__user=self.viewed_user,
                 completed_at__gte=start_of_month
             ).count(),
         }
@@ -132,7 +176,7 @@ class HabitListView(LoginRequiredMixin, ListView):
             category_stats[category] = {
                 'total': 0,
                 'completed': HabitCompletion.objects.filter(
-                    habit__user=self.request.user,
+                    habit__user=self.viewed_user,
                     habit__category=category
                 ).count()
             }
@@ -158,7 +202,7 @@ class HabitListView(LoginRequiredMixin, ListView):
         # Add the rest of the analytics...
         context['analytics'].update({
             'daily_stats': HabitCompletion.objects.filter(
-                habit__user=self.request.user,
+                habit__user=self.viewed_user,
                 completed_at__gte=thirty_days_ago
             ).annotate(
                 date=TruncWeek('completed_at')
@@ -221,9 +265,11 @@ class HabitDetailView(LoginRequiredMixin, DetailView):
 
 class HabitCreateView(LoginRequiredMixin, CreateView):
     model = Habit
-    fields = ["name", "description", "frequency", "category"]  # Form fields
-    template_name = "tracker/habit_form.html"  # Rails equivalent: new.html.erb
-    success_url = reverse_lazy('tracker:habit_list')
+    fields = ["name", "description", "frequency", "category"]
+    template_name = "tracker/habit_form.html"
+    
+    def get_success_url(self):
+        return reverse('tracker:habit_list', kwargs={'username': self.request.user.username})
 
     def form_valid(self, form):
         form.instance.user = self.request.user
@@ -233,8 +279,10 @@ class HabitCreateView(LoginRequiredMixin, CreateView):
 class HabitUpdateView(LoginRequiredMixin, UpdateView):
     model = Habit
     fields = ["name", "description", "frequency", "category"]
-    template_name = "tracker/habit_form.html"  # Rails equivalent: edit.html.erb
-    success_url = reverse_lazy('tracker:habit_list')
+    template_name = "tracker/habit_form.html"
+    
+    def get_success_url(self):
+        return reverse('tracker:habit_list', kwargs={'username': self.request.user.username})
 
     def get_queryset(self):
         return Habit.objects.filter(user=self.request.user)
@@ -243,7 +291,9 @@ class HabitUpdateView(LoginRequiredMixin, UpdateView):
 class HabitDeleteView(LoginRequiredMixin, DeleteView):
     model = Habit
     template_name = "tracker/habit_confirm_delete.html"
-    success_url = reverse_lazy("tracker:habit_list")  # Rails equivalent: `redirect_to`
+    
+    def get_success_url(self):
+        return reverse('tracker:habit_list', kwargs={'username': self.request.user.username})
 
     def get_queryset(self):
         return Habit.objects.filter(user=self.request.user)
@@ -259,4 +309,13 @@ def toggle_habit_completion(request, pk):
         habit.toggle_completion()
     
     referer = request.META.get('HTTP_REFERER')
-    return redirect(referer) if referer else redirect('tracker:habit_detail', pk=pk)
+    return redirect(referer) if referer else redirect('tracker:habit_detail', 
+                                                    username=request.user.username,
+                                                    pk=pk)
+
+
+def root_redirect(request):
+    """Redirect root URL to either habit list or login page"""
+    if request.user.is_authenticated:
+        return redirect('tracker:habit_list', username=request.user.username)
+    return redirect('account_login')

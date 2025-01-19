@@ -55,8 +55,10 @@ INSTALLED_APPS = [
     "tailwind",
     "theme",
     "widget_tweaks",
-    "tracker",
     "django_extensions",
+    # Remove duplicate entries and use the Config classes
+    "tracker.apps.TrackerConfig",
+    "social.apps.SocialConfig",
 ]
 
 TAILWIND_APP_NAME = "theme"
