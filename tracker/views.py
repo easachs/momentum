@@ -28,6 +28,21 @@ class HabitListView(LoginRequiredMixin, ListView):
         
         habits = Habit.objects.filter(user=self.request.user)
         
+        # Get incomplete habits
+        incomplete_daily = habits.filter(
+            frequency='daily',
+            completions__completed_at=today
+        ).count()
+        incomplete_weekly = habits.filter(
+            frequency='weekly',
+            completions__completed_at__gte=start_of_week
+        ).count()
+        
+        context['notifications'] = {
+            'incomplete_daily': habits.filter(frequency='daily').count() - incomplete_daily,
+            'incomplete_weekly': habits.filter(frequency='weekly').count() - incomplete_weekly,
+        }
+        
         # Get completion analytics
         context['analytics'] = {
             'total_habits': habits.count(),
@@ -58,10 +73,7 @@ class HabitListView(LoginRequiredMixin, ListView):
             ).order_by('date'),
             
             # Completion by category
-            'category_stats': habits.values('category').annotate(
-                total=Count('id'),
-                completed=Count('completions', filter=Q(completions__completed_at__gte=thirty_days_ago))
-            )
+            'category_stats': []
         }
         
         # Calculate completion rate percentage based on days since creation
@@ -117,6 +129,35 @@ class HabitListView(LoginRequiredMixin, ListView):
             context['daily_habits'] = daily_habits
             context['weekly_habits'] = weekly_habits
         
+        # First, calculate total possible completions and actual completions per category
+        category_stats = {}
+        for category, _ in Habit.CATEGORY_CHOICES:
+            category_stats[category] = {
+                'total': 0,
+                'completed': HabitCompletion.objects.filter(
+                    habit__user=self.request.user,
+                    habit__category=category
+                ).count()
+            }
+            
+            # Calculate total possible completions for this category
+            for habit in habits.filter(category=category):
+                days_since_creation = (today - habit.created_at.date()).days + 1
+                if habit.frequency == 'daily':
+                    category_stats[category]['total'] += days_since_creation
+                else:  # weekly
+                    category_stats[category]['total'] += (days_since_creation + 6) // 7
+
+        # Add to analytics context
+        context['analytics']['category_stats'] = [
+            {
+                'category': category,
+                'total': stats['total'],
+                'completed': stats['completed']
+            }
+            for category, stats in category_stats.items()
+        ]
+        
         return context
 
 
@@ -166,19 +207,3 @@ def toggle_habit_completion(request, pk):
     # Simply redirect back to the previous page
     referer = request.META.get('HTTP_REFERER')
     return redirect(referer) if referer else redirect('tracker:habit_detail', pk=pk)
-
-
-class DashboardAndHabitListView(LoginRequiredMixin, ListView):
-    model = Habit
-    template_name = "tracker/dashboard_and_habit_list.html"
-    context_object_name = 'habits_summary'
-
-    def get_queryset(self):
-        today = timezone.now().date()
-        start_of_week = today - timezone.timedelta(days=today.weekday())
-        
-        # Get habits and annotate with completion status for today and this week
-        return Habit.objects.filter(user=self.request.user).annotate(
-            completed_today=Count('completions', filter=Q(completions__completed_at=today)),
-            completed_this_week=Count('completions', filter=Q(completions__completed_at__gte=start_of_week))
-        )
