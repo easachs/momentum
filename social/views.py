@@ -49,30 +49,28 @@ def send_friend_request(request, username):
     return redirect('tracker:dashboard', username=username)
 
 @login_required
-def handle_friend_request(request, request_id, action):
-    friendship = get_object_or_404(Friendship, id=request_id)
+def handle_friend_request(request, friendship_id, action):
+    friendship = get_object_or_404(Friendship, id=friendship_id)
     
-    if friendship.receiver != request.user:
-        messages.error(request, "You don't have permission to handle this request!")
-        return redirect('social:friends_list')
+    # Only the receiver can handle the request
+    if request.user != friendship.receiver:
+        messages.error(request, "You cannot handle this friend request.")
+        return redirect('tracker:dashboard', username=request.user.username)
     
     if action == 'accept':
         friendship.status = 'accepted'
-        friendship.rejected_by = None
         friendship.save()
-        messages.success(request, f"You are now friends with {friendship.sender.username}! 🎉")
+        messages.success(request, f"You are now friends with {friendship.sender.username}")
         
-        # Check for friend badge
+        # Check for first friend badge for both users
         BadgeService(request.user).check_social_badges()
         BadgeService(friendship.sender).check_social_badges()
-        
     elif action == 'decline':
         friendship.status = 'declined'
-        friendship.rejected_by = request.user
         friendship.save()
-        messages.success(request, f"Friend request from {friendship.sender.username} declined")
+        messages.info(request, f"Friend request from {friendship.sender.username} declined")
     
-    return redirect('social:friends_list')
+    return redirect('tracker:dashboard', username=request.user.username)
 
 @login_required
 def unfriend(request, friendship_id):

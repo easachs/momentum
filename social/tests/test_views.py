@@ -18,6 +18,11 @@ class TestSocialViews(TestCase):
             email='user2@example.com',
             password='testpass123'
         )
+        self.user3 = get_user_model().objects.create_user(
+            username='user3',
+            email='user3@example.com',
+            password='testpass123'
+        )
         self.client.force_login(self.user1)
 
     def test_send_friend_request(self):
@@ -126,27 +131,18 @@ class TestSocialViews(TestCase):
         )
 
     def test_cannot_handle_other_users_friend_request(self):
-        # Create a friendship request between other users
         friendship = Friendship.objects.create(
-            sender=self.user1,
-            receiver=self.user2,
+            sender=self.user2,
+            receiver=self.user3,  # Not self.user1
             status='pending'
         )
         
-        # Login as different user
-        user3 = get_user_model().objects.create_user(
-            username='user3',
-            email='user3@example.com',
-            password='testpass123'
-        )
-        self.client.force_login(user3)
-        
-        # Try to accept the request
         response = self.client.get(
             reverse('social:handle_friend_request', 
                    kwargs={'friendship_id': friendship.id, 'action': 'accept'})
         )
-        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.status_code, 302)  # Redirects with error message
+        self.assertRedirects(response, reverse('tracker:dashboard', kwargs={'username': self.user1.username}))
 
     def test_leaderboard_requires_login(self):
         self.client.logout()

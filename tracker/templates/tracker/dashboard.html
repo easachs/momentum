@@ -14,11 +14,11 @@
                         <div class="flex flex-col sm:flex-row items-center justify-between space-y-4 sm:space-y-0">
                             <span class="text-center sm:text-left">{{ request.sender.username }} wants to be your friend</span>
                             <div class="flex space-x-2">
-                                <a href="{% url 'social:handle_friend_request' request.id 'accept' %}" 
+                                <a href="{% url 'social:handle_friend_request' friendship_id=request.id action='accept' %}" 
                                    class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
                                     Accept
                                 </a>
-                                <a href="{% url 'social:handle_friend_request' request.id 'decline' %}" 
+                                <a href="{% url 'social:handle_friend_request' friendship_id=request.id action='decline' %}" 
                                    class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
                                     Decline
                                 </a>

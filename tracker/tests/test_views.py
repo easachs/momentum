@@ -232,4 +232,31 @@ class TestHabitViews(TestCase):
             )
         
         response = self.client.get(reverse('tracker:habit_list'))
-        self.assertContains(response, 'Streak: 3') 
+        self.assertContains(response, 'Streak: 3')
+
+    def test_generate_ai_summary(self):
+        """Test AI summary generation endpoint"""
+        self.client.force_login(self.user)
+        response = self.client.post(reverse('tracker:generate_ai_summary'))
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue('content' in response.json())
+
+    def test_dashboard_analytics(self):
+        """Test dashboard analytics calculation"""
+        habit = Habit.objects.create(
+            user=self.user,
+            name="Analytics Test Habit",
+            frequency="daily"
+        )
+        
+        # Create some completions
+        for i in range(5):
+            HabitCompletion.objects.create(
+                habit=habit,
+                completed_at=timezone.now().date() - timedelta(days=i)
+            )
+        
+        response = self.client.get(reverse('tracker:dashboard', kwargs={'username': self.user.username}))
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue('analytics' in response.context)
+        self.assertEqual(response.context['analytics']['total_habits'], 2) 
