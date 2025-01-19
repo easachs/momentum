@@ -29,9 +29,22 @@ class HabitListView(LoginRequiredMixin, ListView):
             completed_this_week=Count('completions', filter=Q(completions__completed_at__gte=start_of_week))
         )
         
-        # Separate habits by frequency
-        context['daily_habits'] = habits.filter(frequency='daily')
-        context['weekly_habits'] = habits.filter(frequency='weekly')
+        # Calculate streaks for each habit
+        daily_habits = []
+        weekly_habits = []
+        
+        for habit in habits:
+            # Calculate the streak for each habit
+            streak = habit.current_streak()
+            habit.streak = streak  # Add streak as an attribute
+            
+            if habit.frequency == 'daily':
+                daily_habits.append(habit)
+            else:
+                weekly_habits.append(habit)
+        
+        context['daily_habits'] = daily_habits
+        context['weekly_habits'] = weekly_habits
         return context
 
 

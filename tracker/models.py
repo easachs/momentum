@@ -3,6 +3,7 @@ from django.core.validators import MinLengthValidator
 from django.urls import reverse
 from django.contrib.auth import get_user_model
 from django.utils import timezone
+from datetime import timedelta
 
 
 class Habit(models.Model):
@@ -57,6 +58,31 @@ class Habit(models.Model):
         if not created:
             completion.delete()
         return created
+
+    def current_streak(self):
+        today = timezone.now().date()
+        streak = 0
+        date = today
+
+        if self.frequency == 'daily':
+            # For daily habits, check consecutive days
+            while self.is_completed_for_date(date):
+                streak += 1
+                date -= timedelta(days=1)
+        else:  # weekly habits
+            # For weekly habits, check consecutive weeks
+            current_week_start = today - timedelta(days=today.weekday())
+            week_start = current_week_start
+            
+            while True:
+                week_end = week_start + timedelta(days=6)
+                if self.completions.filter(completed_at__gte=week_start, completed_at__lte=week_end).exists():
+                    streak += 1
+                    week_start -= timedelta(days=7)
+                else:
+                    break
+
+        return streak
 
 
 class HabitCompletion(models.Model):
