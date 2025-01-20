@@ -2,6 +2,9 @@ from django.urls import reverse_lazy, reverse
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from .models import Application
+from .forms import ApplicationForm
+from django.db import models
+from django.utils import timezone
 
 class ApplicationListView(LoginRequiredMixin, ListView):
     model = Application
@@ -13,7 +16,14 @@ class ApplicationListView(LoginRequiredMixin, ListView):
         status = self.request.GET.get('status')
         if status and status != 'all':
             queryset = queryset.filter(status=status)
-        return queryset.order_by('-created_at')
+        
+        # Always sort by due date, with nulls last
+        queryset = queryset.order_by(
+            models.F('due').asc(nulls_last=True),
+            '-created_at'
+        )
+        
+        return queryset
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -24,28 +34,33 @@ class ApplicationDetailView(DetailView):
     model = Application
     template_name = 'jobhunt/application_detail.html'
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['today'] = timezone.now().date()
+        return context
+
 class ApplicationCreateView(LoginRequiredMixin, CreateView):
     model = Application
     template_name = 'jobhunt/application_form.html'
-    fields = ['company', 'job_title', 'status', 'job_link', 'notes']
+    form_class = ApplicationForm
 
     def form_valid(self, form):
         form.instance.user = self.request.user
         return super().form_valid(form)
 
     def get_success_url(self):
-        return reverse('jobhunt:application_list')
+        return reverse('jobhunt:application_detail', kwargs={'pk': self.object.pk})
 
 class ApplicationUpdateView(LoginRequiredMixin, UpdateView):
     model = Application
     template_name = 'jobhunt/application_form.html'
-    fields = ['company', 'job_title', 'status', 'job_link', 'notes']
+    form_class = ApplicationForm
 
     def get_queryset(self):
         return Application.objects.filter(user=self.request.user)
 
     def get_success_url(self):
-        return reverse('jobhunt:application_list')
+        return reverse('jobhunt:application_detail', kwargs={'pk': self.object.pk})
 
 class ApplicationDeleteView(LoginRequiredMixin, DeleteView):
     model = Application
