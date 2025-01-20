@@ -9,4 +9,5 @@ urlpatterns = [
     path('friend-request/<str:username>/', views.send_friend_request, name='send_friend_request'),
     path('handle-request/<int:friendship_id>/<str:action>/', views.handle_friend_request, name='handle_friend_request'),
     path('unfriend/<int:friendship_id>/', views.unfriend, name='unfriend'),
-] 
+    path('<str:username>/', views.dashboard, name='dashboard')
+]

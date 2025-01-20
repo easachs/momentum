@@ -29,7 +29,7 @@
             <div class="flex justify-between items-center py-4 flex-wrap">
                 {% if user.is_authenticated %}
                     <div class="flex items-center gap-6">
-                        <a href="{% url 'tracker:dashboard' username=user.username %}" class="flex items-center gap-2">
+                        <a href="{% url 'social:dashboard' username=user.username %}" class="flex items-center gap-2">
                             <img src="{% static 'images/momentum.png' %}" alt="Momentum" class="h-8 w-auto">
                         </a>
                         <a href="{% url 'tracker:habit_list' %}" class="text-blue-600 hover:text-blue-800">Habits</a>

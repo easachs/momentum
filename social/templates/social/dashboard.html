@@ -3,13 +3,13 @@
 
 {% block content %}
 <div class="py-8">
-    {% include 'tracker/partials/shared/friend_requests.html' %}
-    {% include 'tracker/partials/shared/friend_status.html' %}
+    {% include 'momentum/partials/shared/friend_requests.html' %}
+    {% include 'momentum/partials/shared/friend_status.html' %}
 
     <!-- Only show content if user is viewing their own profile or is friends -->
     {% if user == viewed_user or friendship.status == 'accepted' %}
-        {% include 'tracker/partials/dashboard/analytics.html' %}
-        {% include 'tracker/partials/dashboard/ai_insights.html' %}
+        {% include 'social/partials/dashboard/analytics.html' %}
+        {% include 'social/partials/dashboard/ai_insights.html' %}
         
         <!-- Badges Section -->
         <div class="bg-white rounded-lg shadow p-6 mb-6">
@@ -21,12 +21,12 @@
                 {% endif %}
             </h2>
             {% with badges=viewed_user|get_user_badges %}
-                {% include 'tracker/partials/dashboard/badges.html' with badges=badges %}
+                {% include 'social/partials/dashboard/badges.html' with badges=badges %}
             {% endwith %}
         </div>
 
         {% if user == viewed_user %}
-            {% include 'tracker/partials/shared/action_buttons.html' %}
+            {% include 'momentum/partials/shared/action_buttons.html' %}
         {% endif %}
     {% endif %}
 </div>

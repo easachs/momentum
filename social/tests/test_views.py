@@ -142,7 +142,7 @@ class TestSocialViews(TestCase):
                    kwargs={'friendship_id': friendship.id, 'action': 'accept'})
         )
         self.assertEqual(response.status_code, 302)  # Redirects with error message
-        self.assertRedirects(response, reverse('tracker:dashboard', kwargs={'username': self.user1.username}))
+        self.assertRedirects(response, reverse('social:dashboard', kwargs={'username': self.user1.username}))
 
     def test_leaderboard_requires_login(self):
         self.client.logout()
@@ -154,4 +154,42 @@ class TestSocialViews(TestCase):
         self.client.logout()
         response = self.client.get(reverse('social:friends_list'))
         self.assertEqual(response.status_code, 302)
-        self.assertIn('/accounts/login/', response.url) 
+        self.assertIn('/accounts/login/', response.url)
+
+    def test_dashboard_view(self):
+        """Test the dashboard view for authenticated user"""
+        response = self.client.get(
+            reverse('social:dashboard', kwargs={'username': self.user1.username})
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'social/dashboard.html')
+        self.assertTrue(response.context['is_own_profile'])
+        self.assertEqual(response.context['profile_user'], self.user1)
+
+    def test_dashboard_view_unauthenticated(self):
+        """Test that unauthenticated users are redirected to login"""
+        self.client.logout()
+        response = self.client.get(
+            reverse('social:dashboard', kwargs={'username': self.user1.username})
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertIn('/accounts/login/', response.url)
+
+    def test_dashboard_view_other_user(self):
+        """Test viewing another user's dashboard"""
+        other_user = get_user_model().objects.create_user(
+            username='otheruser',
+            password='testpass123'
+        )
+        # Create friendship to allow viewing
+        Friendship.objects.create(
+            sender=self.user1,
+            receiver=other_user,
+            status='accepted'
+        )
+        response = self.client.get(
+            reverse('social:dashboard', kwargs={'username': other_user.username})
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.context['is_own_profile'])
+        self.assertEqual(response.context['profile_user'], other_user) 

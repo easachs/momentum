@@ -51,7 +51,7 @@
                     {% if friendship.sender == user %}
                         <div class="bg-white rounded-lg shadow p-4">
                             <div class="flex justify-between items-center">
-                                <a href="{% url 'tracker:dashboard' username=friendship.receiver.username %}" 
+                                <a href="{% url 'social:dashboard' username=friendship.receiver.username %}" 
                                    class="text-lg text-blue-600 hover:text-blue-800">
                                     {{ friendship.receiver.username }}
                                 </a>
@@ -68,7 +68,7 @@
                     {% else %}
                         <div class="bg-white rounded-lg shadow p-4">
                             <div class="flex justify-between items-center">
-                                <a href="{% url 'tracker:dashboard' username=friendship.sender.username %}" 
+                                <a href="{% url 'social:dashboard' username=friendship.sender.username %}" 
                                    class="text-lg text-blue-600 hover:text-blue-800">
                                     {{ friendship.sender.username }}
                                 </a>

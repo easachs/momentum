@@ -29,7 +29,7 @@ class TestSocialIntegration(TestCase):
         )
 
         # Try to view user2's dashboard (should not see analytics)
-        response = self.client.get(reverse('tracker:dashboard', kwargs={'username': self.user2.username}))
+        response = self.client.get(reverse('social:dashboard', kwargs={'username': self.user2.username}))
         self.assertNotContains(response, 'Your Habit Analytics')
 
         # Send friend request
@@ -51,7 +51,7 @@ class TestSocialIntegration(TestCase):
         self.client.force_login(self.user1)
 
         # Now should be able to see user2's analytics
-        response = self.client.get(reverse('tracker:dashboard', kwargs={'username': self.user2.username}))
+        response = self.client.get(reverse('social:dashboard', kwargs={'username': self.user2.username}))
         self.assertContains(response, "user2's Habit Analytics")
 
     def test_leaderboard_completion_update_flow(self):
@@ -88,4 +88,51 @@ class TestSocialIntegration(TestCase):
         # Check that user2 comes before user1 in the leaderboard data
         user2_index = next(i for i, entry in enumerate(leaderboard_data) if entry['user'] == self.user2)
         user1_index = next(i for i, entry in enumerate(leaderboard_data) if entry['user'] == self.user1)
-        self.assertTrue(user2_index < user1_index) 
+        self.assertTrue(user2_index < user1_index)
+
+    def test_dashboard_analytics_display(self):
+        """Test that dashboard displays analytics correctly"""
+        # Create some habits and completions
+        habit = Habit.objects.create(
+            user=self.user1,
+            name="Test Habit",
+            frequency="daily"
+        )
+        HabitCompletion.objects.create(
+            habit=habit,
+            completed_at=timezone.now()
+        )
+
+        # Create friendship to allow viewing analytics
+        if self.user1 != self.user2:
+            Friendship.objects.create(
+                sender=self.user1,
+                receiver=self.user2,
+                status='accepted'
+            )
+
+        response = self.client.get(
+            reverse('social:dashboard', kwargs={'username': self.user1.username})
+        )
+        self.assertEqual(response.status_code, 200)
+        # Check that analytics are displayed
+        self.assertTrue('analytics' in response.context)
+        self.assertEqual(response.context['analytics']['total_habits'], 1)
+        self.assertEqual(response.context['analytics']['this_week_completions'], 1)
+
+    def test_dashboard_friend_requests(self):
+        """Test that dashboard shows friend requests"""
+        # Create a pending friend request
+        Friendship.objects.create(
+            sender=self.user2,
+            receiver=self.user1,
+            status='pending'
+        )
+
+        response = self.client.get(
+            reverse('social:dashboard', kwargs={'username': self.user1.username})
+        )
+        # Check that friend requests are in the context
+        self.assertTrue('friend_requests' in response.context)
+        self.assertEqual(len(response.context['friend_requests']), 1)
+        self.assertEqual(response.context['friend_requests'][0].sender, self.user2) 

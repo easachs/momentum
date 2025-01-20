@@ -256,7 +256,7 @@ class TestHabitViews(TestCase):
                 completed_at=timezone.now().date() - timedelta(days=i)
             )
         
-        response = self.client.get(reverse('tracker:dashboard', kwargs={'username': self.user.username}))
+        response = self.client.get(reverse('social:dashboard', kwargs={'username': self.user.username}))
         self.assertEqual(response.status_code, 200)
         self.assertTrue('analytics' in response.context)
         self.assertEqual(response.context['analytics']['total_habits'], 2) 

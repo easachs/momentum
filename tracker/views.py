@@ -11,8 +11,6 @@ from django.utils import timezone
 from django.db.models import Count, Q
 from django.db.models.functions import TruncWeek, TruncMonth
 from django.contrib import messages
-from social.models import Friendship
-from django.contrib.auth import get_user_model
 from django.urls import reverse
 from django.views.decorators.csrf import csrf_protect
 import logging
@@ -270,7 +268,7 @@ class HabitUpdateView(LoginRequiredMixin, UpdateView):
     template_name = "tracker/habit_form.html"
     
     def get_success_url(self):
-        return reverse('tracker:dashboard', kwargs={'username': self.request.user.username})
+        return reverse('social:dashboard', kwargs={'username': self.request.user.username})
 
     def get_queryset(self):
         return Habit.objects.filter(user=self.request.user)
@@ -281,7 +279,7 @@ class HabitDeleteView(LoginRequiredMixin, DeleteView):
     template_name = "tracker/habit_confirm_delete.html"
     
     def get_success_url(self):
-        return reverse('tracker:dashboard', kwargs={'username': self.request.user.username})
+        return reverse('social:dashboard', kwargs={'username': self.request.user.username})
 
     def get_queryset(self):
         return Habit.objects.filter(user=self.request.user)
@@ -306,7 +304,7 @@ def toggle_habit_completion(request, pk):
 def root_redirect(request):
     """Redirect root URL to either dashboard or login page"""
     if request.user.is_authenticated:
-        return redirect('tracker:dashboard', username=request.user.username)
+        return redirect('social:dashboard', username=request.user.username)
     return redirect('account_login')
 
 
@@ -341,128 +339,3 @@ def generate_ai_summary(request):
         return JsonResponse({
             'error': 'An unexpected error occurred'
         }, status=500)
-
-
-class DashboardView(LoginRequiredMixin, DetailView):
-    model = get_user_model()
-    template_name = 'tracker/dashboard.html'
-    context_object_name = 'viewed_user'
-    slug_field = 'username'
-    slug_url_kwarg = 'username'
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        viewed_user = self.get_object()
-        
-        # Only check badges if they haven't been checked recently
-        if self.request.user == viewed_user:
-            # We could add caching here to prevent frequent checks
-            pass
-        
-        # Add friendship context if viewing another user's dashboard
-        if self.request.user != viewed_user:
-            context['friendship'] = Friendship.objects.filter(
-                (Q(sender=self.request.user) & Q(receiver=viewed_user)) |
-                (Q(sender=viewed_user) & Q(receiver=self.request.user))
-            ).first()
-
-        # Add friend requests if viewing own dashboard
-        if self.request.user == viewed_user:
-            context['friend_requests'] = Friendship.objects.filter(
-                receiver=self.request.user,
-                status='pending'
-            )
-
-        # Add analytics and AI summary if user has permission
-        if self.request.user == viewed_user or (context.get('friendship') and context['friendship'].status == 'accepted'):
-            # Add analytics context
-            context.update(self._get_analytics_context(viewed_user))
-            
-            # Add latest AI summary
-            context['latest_summary'] = AIHabitSummary.objects.filter(
-                user=viewed_user
-            ).first()
-
-        return context
-
-    def _get_analytics_context(self, user):
-        """Get analytics data for the dashboard"""
-        today = timezone.now().date()
-        thirty_days_ago = today - timedelta(days=30)
-        start_of_week = today - timedelta(days=today.weekday())
-        start_of_month = today.replace(day=1)
-
-        # Get all habits and completions
-        habits = Habit.objects.filter(user=user)
-        completions = HabitCompletion.objects.filter(habit__user=user)
-
-        # Calculate completion rates and stats
-        total_completions = completions.count()
-        total_possible = sum(
-            (today - habit.created_at.date()).days + 1 if habit.frequency == 'daily'
-            else ((today - habit.created_at.date()).days + 7) // 7
-            for habit in habits
-        )
-
-        # Get category stats
-        category_stats = []
-        for category, label in Habit.CATEGORY_CHOICES:
-            category_habits = habits.filter(category=category)
-            if category_habits.exists():
-                completed = completions.filter(habit__category=category).count()
-                total = sum(
-                    (today - habit.created_at.date()).days + 1 if habit.frequency == 'daily'
-                    else ((today - habit.created_at.date()).days + 7) // 7
-                    for habit in category_habits
-                )
-                category_stats.append({
-                    'category': category,
-                    'completed': completed,
-                    'total': total,
-                    'habit_count': category_habits.count(),
-                    'percentage': round(completed / total * 100 if total > 0 else 0, 1)
-                })
-
-        # Calculate best streak across all habits
-        best_streak = max((habit.current_streak() for habit in habits), default=0)
-
-        return {
-            'analytics': {
-                'total_habits': habits.count(),
-                'completion_rate': round(total_completions / total_possible * 100 if total_possible > 0 else 0, 1),
-                'this_week_completions': completions.filter(completed_at__gte=start_of_week).count(),
-                'this_month_completions': completions.filter(completed_at__gte=start_of_month).count(),
-                'category_stats': category_stats,
-                'best_streak': best_streak
-            }
-        }
-
-
-@login_required
-def toggle_completion(request, pk):
-    habit = get_object_or_404(Habit, pk=pk)
-    
-    if habit.user != request.user:
-        messages.error(request, "You can't modify someone else's habits!")
-        return redirect('tracker:habit_list')
-    
-    date_str = request.POST.get('date')
-    if date_str:
-        date = datetime.strptime(date_str, '%Y-%m-%d').date()
-    else:
-        date = timezone.now().date()
-    
-    if habit.is_completed_for_date(date):
-        habit.completions.filter(completed_at=date).delete()
-        messages.success(request, f"Marked {habit.name} as incomplete")
-    else:
-        habit.completions.create(completed_at=date)
-        messages.success(request, f"Marked {habit.name} as complete")
-    
-    # Check all badges after any completion toggle
-    BadgeService(request.user).check_all_badges()
-    
-    if request.headers.get('HX-Request'):
-        return HttpResponse()
-    
-    return redirect(request.META.get('HTTP_REFERER', 'tracker:habit_list'))
