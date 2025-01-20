@@ -84,7 +84,12 @@ ROOT_URLCONF = "momentum.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [BASE_DIR / "templates"],
+        "DIRS": [
+            BASE_DIR / "momentum" / "templates",
+            BASE_DIR / "tracker" / "templates",
+            BASE_DIR / "social" / "templates",
+            BASE_DIR / "momentum" / "templates" / "allauth",
+        ],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -186,7 +191,7 @@ SOCIALACCOUNT_AUTO_SIGNUP = True
 
 LANGUAGE_CODE = "en-us"
 
-TIME_ZONE = "UTC"
+TIME_ZONE = 'America/Denver'  # Mountain Time
 
 USE_I18N = True
 
@@ -199,7 +204,7 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_DIRS = [
-    BASE_DIR / "static",
+    BASE_DIR / "momentum" / "static",
 ]
 
 # Default primary key field type

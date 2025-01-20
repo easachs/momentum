@@ -2,11 +2,11 @@ from django.test import TestCase
 from django.contrib.auth import get_user_model
 from tracker.models import Habit, HabitCompletion, Badge
 from social.models import Friendship
-from tracker.services.badge_service import BadgeService
+from tracker.services.badges.badge_service import BadgeService
 from datetime import timedelta
 from django.utils import timezone
 from unittest.mock import patch, MagicMock
-from tracker.services.ai_service import AIHabitService
+from tracker.services.ai.ai_service import AIHabitService
 
 class TestBadgeService(TestCase):
     def setUp(self):
@@ -138,7 +138,7 @@ class TestAIService(TestCase):
             category="health"
         )
     
-    @patch('tracker.services.ai_service.OpenAI')
+    @patch('tracker.services.ai.ai_service.OpenAI')
     def test_generate_habit_summary(self, mock_openai):
         # Mock OpenAI response
         mock_response = MagicMock()
@@ -184,7 +184,7 @@ class TestAIService(TestCase):
         self.assertIn('3', prompt)  # streak
         self.assertIn('10', prompt)  # monthly completions
 
-    @patch('tracker.services.ai_service.OpenAI')
+    @patch('tracker.services.ai.ai_service.OpenAI')
     def test_handle_openai_error(self, mock_openai):
         mock_openai.return_value.chat.completions.create.side_effect = Exception("API Error")
         

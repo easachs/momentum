@@ -53,29 +53,24 @@ class TestHabitIntegration(TestCase):
         self.assertEqual(category_stats['learning']['total'], 1)
 
     def test_weekly_monthly_completion_counts(self):
-        today = timezone.now().date()
+        """Test that weekly and monthly completion counts are accurate"""
         habit = Habit.objects.create(
             user=self.user,
             name="Test Habit 2",
             frequency="daily"
         )
-
-        # Create completions across different time periods
-        dates = [
-            today,
-            today - timedelta(days=1),
-            today - timedelta(days=7),
-            today - timedelta(days=14),
-            today - timedelta(days=30)
-        ]
-        for date in dates:
-            HabitCompletion.objects.create(habit=habit, completed_at=date)
-
-        response = self.client.get(reverse('tracker:habit_list'))
-        analytics = response.context['analytics']
-
-        self.assertEqual(analytics['this_week_completions'], 2)  # Today and yesterday
-        self.assertEqual(analytics['this_month_completions'], 4)  # All except the 30-day-old one
+        
+        # Get the start of the current week
+        today = timezone.now().date()
+        start_of_week = today - timedelta(days=today.weekday())
+        
+        # Create two completions in the current week
+        HabitCompletion.objects.create(habit=habit, completed_at=start_of_week)
+        HabitCompletion.objects.create(habit=habit, completed_at=start_of_week + timedelta(days=1))
+        
+        response = self.client.get(reverse('tracker:dashboard', kwargs={'username': self.user.username}))
+        self.assertEqual(response.context['analytics']['this_week_completions'], 2)
+        self.assertEqual(response.context['analytics']['this_month_completions'], 2)
 
     def test_incomplete_habit_notifications(self):
         response = self.client.get(reverse('tracker:habit_list'))

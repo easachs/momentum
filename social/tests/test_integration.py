@@ -52,7 +52,7 @@ class TestSocialIntegration(TestCase):
 
         # Now should be able to see user2's analytics
         response = self.client.get(reverse('tracker:dashboard', kwargs={'username': self.user2.username}))
-        self.assertContains(response, 'Your Habit Analytics')
+        self.assertContains(response, "user2's Habit Analytics")
 
     def test_leaderboard_completion_update_flow(self):
         # Create habits for both users

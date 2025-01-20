@@ -1,5 +1,5 @@
 from django.db.models import Q
-from ..models import Badge, Habit, HabitCompletion
+from ...models import Badge, Habit, HabitCompletion
 import logging
 
 logger = logging.getLogger(__name__)

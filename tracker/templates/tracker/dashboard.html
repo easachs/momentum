@@ -1,252 +1,33 @@
 {% extends 'base.html' %}
-{% load math_filters %}
-{% load markdown_filters %}
-{% load tracker_tags %}
+{% load badges.filters %}
 
 {% block content %}
 <div class="py-8">
-    {% if user == viewed_user %}
-        <!-- Friend Request Notifications -->
-        {% if friend_requests %}
-            <div class="mb-8">
-                {% for request in friend_requests %}
-                    <div class="bg-white border rounded-lg p-4 mb-4">
-                        <div class="flex flex-col sm:flex-row items-center justify-between space-y-4 sm:space-y-0">
-                            <span class="text-center sm:text-left">{{ request.sender.username }} wants to be your friend</span>
-                            <div class="flex space-x-2">
-                                <a href="{% url 'social:handle_friend_request' friendship_id=request.id action='accept' %}" 
-                                   class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
-                                    Accept
-                                </a>
-                                <a href="{% url 'social:handle_friend_request' friendship_id=request.id action='decline' %}" 
-                                   class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
-                                    Decline
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                {% endfor %}
-            </div>
-        {% endif %}
-    {% endif %}
+    {% include 'tracker/partials/shared/friend_requests.html' %}
+    {% include 'tracker/partials/shared/friend_status.html' %}
 
-    {% if user != viewed_user %}
-        {% if not friendship %}
-            <!-- Show friend request button -->
-            <div class="mb-8 text-center">
-                <p class="mb-4">You need to be friends with {{ viewed_user.username }} to see their habits.</p>
-                <a href="{% url 'social:send_friend_request' viewed_user.username %}"
-                   class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
-                    Add Friend
-                </a>
-            </div>
-        {% elif friendship.status == 'pending' %}
-            <div class="mb-8 text-center">
-                <p>Friend request pending</p>
-            </div>
-        {% elif friendship.status == 'declined' %}
-            <!-- Show add friend button again if request was declined -->
-            <div class="mb-8 text-center">
-                <p class="mb-4">You need to be friends with {{ viewed_user.username }} to see their habits.</p>
-                <a href="{% url 'social:send_friend_request' viewed_user.username %}"
-                   class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
-                    Add Friend
-                </a>
-            </div>
-        {% endif %}
-    {% endif %}
-
-    <!-- Only show habits if user is viewing their own profile or is friends -->
+    <!-- Only show content if user is viewing their own profile or is friends -->
     {% if user == viewed_user or friendship.status == 'accepted' %}
-        <!-- Notifications -->
-        {% if notifications.incomplete_daily > 0 or notifications.incomplete_weekly > 0 %}
-            <div class="mb-8">
-                {% if notifications.incomplete_daily > 0 %}
-                    <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4">
-                        <div class="flex">
-                            <div class="flex-shrink-0">
-                                <!-- Heroicon name: solid/exclamation -->
-                                <svg class="h-5 w-5 text-yellow-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
-                                </svg>
-                            </div>
-                            <div class="ml-3">
-                                <p class="text-sm text-yellow-700">
-                                    You have {{ notifications.incomplete_daily }} incomplete daily habit{{ notifications.incomplete_daily|pluralize }} today
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                {% endif %}
-                {% if notifications.incomplete_weekly > 0 %}
-                    <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4">
-                        <div class="flex">
-                            <div class="flex-shrink-0">
-                                <svg class="h-5 w-5 text-yellow-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
-                                </svg>
-                            </div>
-                            <div class="ml-3">
-                                <p class="text-sm text-yellow-700">
-                                    You have {{ notifications.incomplete_weekly }} incomplete weekly habit{{ notifications.incomplete_weekly|pluralize }} this week
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                {% endif %}
-            </div>
-        {% endif %}
-
-        <!-- Analytics Dashboard -->
-        <div class="mb-8">
-            <h2 class="text-2xl font-semibold mb-6">Your Habit Analytics</h2>
-            
-            <!-- Summary Cards -->
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                <div class="bg-white p-4 rounded-lg shadow">
-                    <h3 class="text-gray-500 text-sm">Total Habits</h3>
-                    <p class="text-2xl font-bold">{{ analytics.total_habits }}</p>
-                </div>
-                <div class="bg-white p-4 rounded-lg shadow">
-                    <h3 class="text-gray-500 text-sm">This Week's Completions</h3>
-                    <p class="text-2xl font-bold">{{ analytics.this_week_completions }}</p>
-                </div>
-                <div class="bg-white p-4 rounded-lg shadow">
-                    <h3 class="text-gray-500 text-sm">This Month's Completions</h3>
-                    <p class="text-2xl font-bold">{{ analytics.this_month_completions }}</p>
-                </div>
-                <div class="bg-white p-4 rounded-lg shadow">
-                    <h3 class="text-gray-500 text-sm">Overall Completion Rate</h3>
-                    <p class="text-2xl font-bold">{{ analytics.completion_rate|floatformat:1 }}%</p>
-                </div>
-            </div>
-
-            <!-- Category Performance -->
-            <div class="bg-white p-6 rounded-lg shadow mb-6">
-                <h3 class="text-lg font-semibold mb-4">Category Performance</h3>
-                <div class="space-y-4">
-                    {% for stat in analytics.category_stats %}
-                    <div class="flex items-center">
-                        <span class="w-32 text-gray-600">{{ stat.category|title }}</span>
-                        <div class="flex-1 bg-gray-200 rounded-full h-4">
-                            {% with completion_percent=stat.completed|multiply:100|divide:stat.total %}
-                            <div class="bg-blue-500 h-4 rounded-full" style="width: {{ completion_percent|floatformat:1 }}%"></div>
-                            {% endwith %}
-                        </div>
-                        <span class="ml-4 text-sm text-gray-600">{{ stat.completed }}/{{ stat.total }}</span>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-
-            <div class="bg-white rounded-lg shadow p-6 mb-6">
-                <h2 class="text-lg font-semibold mb-4">Category Insights</h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {% for stat in analytics.category_stats %}
-                        <div class="border rounded p-4">
-                            <h3 class="font-semibold">{{ stat.category|title }}</h3>
-                            <p>Completion Rate: {{ stat.completed|percentage:stat.total|floatformat:1 }}%</p>
-                            <p>Total Habits: {{ stat.habit_count }}</p>
-                        </div>
-                    {% endfor %}
-                </div>
-            </div>
-        </div>
-
-        <!-- AI Insights Section -->
-        <div class="bg-white rounded-lg shadow p-6 mb-6">
-            <h2 class="text-lg font-semibold mb-4">AI Insights</h2>
-            
-            <div id="ai-summary-container" class="bg-gray-50 rounded-lg p-4 mb-4">
-                {% if latest_summary %}
-                    <div class="prose max-w-none text-sm sm:text-base">
-                        {{ latest_summary.content|markdown }}
-                    </div>
-                    <p class="text-sm text-gray-500 mt-2">
-                        Generated {{ latest_summary.created_at|timesince }} ago
-                    </p>
-                {% else %}
-                    <p class="text-gray-600">No AI summary generated yet.</p>
-                {% endif %}
-            </div>
-            
-            {% if user == viewed_user %}
-                <div class="text-center">
-                    <button id="generate-summary" 
-                            class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors inline-block">
-                        Get Insights
-                    </button>
-                </div>
-            {% endif %}
-        </div>
-
+        {% include 'tracker/partials/dashboard/analytics.html' %}
+        {% include 'tracker/partials/dashboard/ai_insights.html' %}
+        
         <!-- Badges Section -->
         <div class="bg-white rounded-lg shadow p-6 mb-6">
-            <h2 class="text-lg font-semibold mb-4">Your Achievements</h2>
-            {% with badges=user|get_user_badges %}
-                {% include 'tracker/badges.html' with badges=badges %}
+            <h2 class="text-lg font-semibold mb-4">
+                {% if user == viewed_user %}
+                    Your Achievements
+                {% else %}
+                    {{ viewed_user.username }}'s Achievements
+                {% endif %}
+            </h2>
+            {% with badges=viewed_user|get_user_badges %}
+                {% include 'tracker/partials/dashboard/badges.html' with badges=badges %}
             {% endwith %}
         </div>
 
-        <!-- Move friends and leaderboard buttons together -->
-        <div class="mt-8 space-y-6">
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                {% if user == viewed_user %}
-                    <a href="{% url 'tracker:habit_create' %}" 
-                       class="inline-block bg-blue-500 text-white px-3 py-1.5 md:px-4 md:py-2 text-sm md:text-base rounded hover:bg-blue-600">
-                        Add New Habit
-                    </a>
-                    <div class="space-x-4">
-                        <a href="{% url 'social:friends_list' %}"
-                           class="inline-block bg-purple-500 text-white px-3 py-1.5 md:px-4 md:py-2 text-sm md:text-base rounded hover:bg-purple-600">
-                            Friends
-                        </a>
-                        <a href="{% url 'social:leaderboard' %}"
-                           class="inline-block bg-yellow-500 text-white px-3 py-1.5 md:px-4 md:py-2 text-sm md:text-base rounded hover:bg-yellow-600">
-                            Leaderboard
-                        </a>
-                    </div>
-                {% endif %}
-            </div>
-        </div>
+        {% if user == viewed_user %}
+            {% include 'tracker/partials/shared/action_buttons.html' %}
+        {% endif %}
     {% endif %}
 </div>
-
-<!-- Add this script at the bottom of the file, before the endblock -->
-<script>
-document.getElementById('generate-summary')?.addEventListener('click', async function() {
-    this.disabled = true;
-    this.textContent = 'Generating...';
-    
-    try {
-        const response = await fetch(
-            "{% url 'tracker:generate_ai_summary' %}",
-            {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': '{{ csrf_token }}'
-                }
-            }
-        );
-        
-        const data = await response.json();
-        
-        const container = document.getElementById('ai-summary-container');
-        container.innerHTML = `
-            <div class="prose max-w-none">
-                ${data.content}
-            </div>
-            <p class="text-sm text-gray-500 mt-2">
-                Generated just now
-            </p>
-        `;
-    } catch (error) {
-        console.error("Error:", error);
-        alert('Error generating summary. Please try again.');
-    } finally {
-        this.disabled = false;
-        this.textContent = 'Generate New Summary';
-    }
-});
-</script>
 {% endblock %}

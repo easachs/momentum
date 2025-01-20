@@ -18,9 +18,9 @@ from django.views.decorators.csrf import csrf_protect
 import logging
 
 from .models import Habit, HabitCompletion, AIHabitSummary
-from .services.ai_service import AIHabitService
-from tracker.templatetags.markdown_filters import markdown_filter
-from .services.badge_service import BadgeService
+from .services.ai.ai_service import AIHabitService
+from tracker.templatetags.markdown.filters import markdown_filter
+from .services.badges.badge_service import BadgeService
 
 logger = logging.getLogger(__name__)
 
@@ -136,6 +136,7 @@ class HabitListView(LoginRequiredMixin, ListView):
                 categorized_habits[habit.category]['habits'].append(habit)
             
             context['categorized_habits'] = categorized_habits
+            context['has_any_habits'] = any(data['habits'] for data in categorized_habits.values())
         else:
             # Original frequency-based grouping
             daily_habits = []

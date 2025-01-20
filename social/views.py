@@ -7,7 +7,7 @@ from .models import Friendship
 from tracker.models import Habit, HabitCompletion, Badge
 from django.urls import reverse
 from django.db.models import Q, Count
-from tracker.services.badge_service import BadgeService
+from tracker.services.badges.badge_service import BadgeService
 
 @login_required
 def send_friend_request(request, username):

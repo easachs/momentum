@@ -5,7 +5,7 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 from datetime import timedelta
 from django.conf import settings
-from tracker.templatetags.markdown_filters import markdown_filter
+from tracker.templatetags.markdown.filters import markdown_filter
 
 
 # Models in Django are similar to ActiveRecord models in Rails
