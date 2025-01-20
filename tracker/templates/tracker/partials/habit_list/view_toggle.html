@@ -1,0 +1,12 @@
+<div class="flex justify-end mb-6">
+    <div class="inline-flex rounded-lg border border-gray-200">
+        <a href="?view=frequency" 
+           class="px-4 py-2 rounded-l-lg {% if view_mode == 'frequency' %}bg-blue-500 text-white{% else %}hover:bg-gray-100{% endif %}">
+            By Frequency
+        </a>
+        <a href="?view=category" 
+           class="px-4 py-2 rounded-r-lg {% if view_mode == 'category' %}bg-blue-500 text-white{% else %}hover:bg-gray-100{% endif %}">
+            By Category
+        </a>
+    </div>
+</div> 

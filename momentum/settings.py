@@ -25,7 +25,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "django-insecure-1+1)*e-zkg7rdsxt369fiq*7q*@m-$4@b!q551di9+^4o2^ne&")
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -55,8 +55,10 @@ INSTALLED_APPS = [
     "tailwind",
     "theme",
     "widget_tweaks",
-    "tracker",
     "django_extensions",
+    # Remove duplicate entries and use the Config classes
+    "tracker.apps.TrackerConfig",
+    "social.apps.SocialConfig",
 ]
 
 TAILWIND_APP_NAME = "theme"
@@ -82,7 +84,12 @@ ROOT_URLCONF = "momentum.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [BASE_DIR / "templates"],
+        "DIRS": [
+            BASE_DIR / "momentum" / "templates",
+            BASE_DIR / "tracker" / "templates",
+            BASE_DIR / "social" / "templates",
+            BASE_DIR / "momentum" / "templates" / "allauth",
+        ],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -184,7 +191,7 @@ SOCIALACCOUNT_AUTO_SIGNUP = True
 
 LANGUAGE_CODE = "en-us"
 
-TIME_ZONE = "UTC"
+TIME_ZONE = 'America/Denver'  # Mountain Time
 
 USE_I18N = True
 
@@ -194,10 +201,10 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
-STATIC_URL = "static/"
+STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_DIRS = [
-    BASE_DIR / "static",
+    BASE_DIR / "momentum" / "static",
 ]
 
 # Default primary key field type
@@ -216,15 +223,15 @@ if DEBUG:
                 'class': 'logging.StreamHandler',
             },
         },
+        'root': {
+            'handlers': ['console'],
+            'level': 'INFO',
+        },
         'loggers': {
-            'django.request': {
+            'tracker': {
                 'handlers': ['console'],
-                'level': 'DEBUG',
+                'level': 'INFO',
                 'propagate': True,
-            },
-            'allauth': {
-                'handlers': ['console'],
-                'level': 'DEBUG',
             },
         },
     }

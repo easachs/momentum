@@ -1,22 +1,17 @@
 from django.urls import path
 
 from . import views
+from .views import HabitListView
 
 app_name = "tracker"
 
 urlpatterns = [
-    path("", views.HabitListView.as_view(), name="habit_list"),  # List habits
-    path(
-        "<int:pk>/", views.HabitDetailView.as_view(), name="habit_detail"
-    ),  # Show habit
-    path(
-        "create/", views.HabitCreateView.as_view(), name="habit_create"
-    ),  # Create habit
-    path(
-        "<int:pk>/update/", views.HabitUpdateView.as_view(), name="habit_update"
-    ),  # Update habit
-    path(
-        "<int:pk>/delete/", views.HabitDeleteView.as_view(), name="habit_delete"
-    ),  # Delete habit
-    path('<int:pk>/toggle-completion/', views.toggle_habit_completion, name='habit_completion_toggle'),
+    path('habits/', views.HabitListView.as_view(), name='habit_list'),
+    path('habits/create/', views.HabitCreateView.as_view(), name='habit_create'),
+    path('habits/<int:pk>/', views.HabitDetailView.as_view(), name='habit_detail'),
+    path('habits/<int:pk>/edit/', views.HabitUpdateView.as_view(), name='habit_update'),
+    path('habits/<int:pk>/delete/', views.HabitDeleteView.as_view(), name='habit_delete'),
+    path('habits/<int:pk>/toggle/', views.toggle_habit_completion, name='toggle_completion'),
+    path('habits/ai-summary/', views.generate_ai_summary, name='generate_ai_summary'),
+    path('<str:username>/', views.DashboardView.as_view(), name='dashboard'),
 ]

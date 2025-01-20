@@ -1,52 +1,65 @@
 {% extends 'base.html' %}
+{% load math.filters %}
 
 {% block content %}
 <div class="py-8">
-    <h1 class="text-3xl font-bold mb-6">Your Habits</h1>
-    <ul class="space-y-4">
-        {% if object_list %}
-            {% for habit in object_list %}
-                <li class="bg-white p-4 rounded-lg shadow flex items-center justify-between">
-                    <div class="flex-1">
-                        <a href="{% url 'tracker:habit_detail' habit.pk %}" class="text-blue-600 hover:text-blue-800">
-                            {{ habit.name }}
-                        </a>
-                        <span class="ml-2 text-gray-600">
-                            <strong>Category:</strong> {{ habit.get_category_display }}
-                        </span>
-                    </div>
-                    
-                    <!-- Completion Status and Toggle -->
-                    <div class="flex items-center space-x-4">
-                        <span class="text-sm text-gray-600">
-                            Today's Status:
-                            {% if habit.is_completed_for_date %}
-                                <span class="text-green-600">✓ Done</span>
-                            {% else %}
-                                <span class="text-red-600">○ Not Done</span>
-                            {% endif %}
-                        </span>
-                        <form method="post" action="{% url 'tracker:habit_completion_toggle' habit.pk %}" class="inline">
-                            {% csrf_token %}
-                            <button type="submit" 
-                                    class="{% if habit.is_completed_for_date %}bg-red-500 hover:bg-red-600{% else %}bg-green-500 hover:bg-green-600{% endif %} text-white px-3 py-1 rounded text-sm">
-                                {% if habit.is_completed_for_date %}
-                                    Mark Incomplete
-                                {% else %}
-                                    Mark Complete
-                                {% endif %}
-                            </button>
-                        </form>
-                    </div>
-                </li>
+    <!-- Only show habits if user is viewing their own profile or is friends -->
+    {% if user == viewed_user or friendship.status == 'accepted' %}
+        {% include 'tracker/partials/habit_list/notifications.html' with notifications=notifications %}
+        {% include 'tracker/partials/habit_list/view_toggle.html' with view_mode=view_mode %}
+
+        {% if view_mode == 'category' %}
+            <!-- Category View -->
+            {% for category, data in categorized_habits.items %}
+                {% if data.habits %}
+                    <h2 class="text-2xl font-semibold {% if not forloop.first %}mt-8{% endif %} mb-4">
+                        {{ data.label }}
+                    </h2>
+                    <ul class="space-y-4">
+                        {% for habit in data.habits %}
+                            {% include 'tracker/partials/habit_list/habit_card.html' with habit=habit user=user viewed_user=viewed_user %}
+                        {% endfor %}
+                    </ul>
+                {% endif %}
             {% endfor %}
+            {% with has_habits=False %}
+                {% for category, data in categorized_habits.items %}
+                    {% if data.habits %}
+                        {% with has_habits=True %}{% endwith %}
+                    {% endif %}
+                {% endfor %}
+                {% if not has_habits %}
+                    <p class="text-gray-600 text-center py-8">No habits yet.</p>
+                {% endif %}
+            {% endwith %}
         {% else %}
-            <li class="text-gray-500">No habits yet.</li>
+            <!-- Frequency View -->
+            {% if daily_habits %}
+                <h2 class="text-2xl font-semibold mb-4">Daily</h2>
+                <ul class="space-y-4">
+                    {% for habit in daily_habits %}
+                        {% include 'tracker/partials/habit_list/habit_card.html' with habit=habit user=user viewed_user=viewed_user %}
+                    {% endfor %}
+                </ul>
+            {% endif %}
+
+            {% if weekly_habits %}
+                <h2 class="text-2xl font-semibold mt-8 mb-4">Weekly</h2>
+                <ul class="space-y-4">
+                    {% for habit in weekly_habits %}
+                        {% include 'tracker/partials/habit_list/habit_card.html' with habit=habit user=user viewed_user=viewed_user %}
+                    {% endfor %}
+                </ul>
+            {% endif %}
+            {% if not daily_habits and not weekly_habits %}
+                <p class="text-gray-600 text-center py-8">No habits yet.</p>
+            {% endif %}
         {% endif %}
-    </ul>
-    <a href="{% url 'tracker:habit_create' %}" 
-       class="mt-6 inline-block bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
-        Add New Habit
-    </a>
+
+        {% include 'tracker/partials/habit_list/category_filter.html' with habit_categories=habit_categories %}
+        {% if user == viewed_user %}
+            {% include 'tracker/partials/shared/action_buttons.html' %}
+        {% endif %}
+    {% endif %}
 </div>
 {% endblock %}

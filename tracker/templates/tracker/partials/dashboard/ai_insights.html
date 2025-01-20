@@ -1,0 +1,66 @@
+{% load markdown.filters %}
+
+<div class="bg-white rounded-lg shadow p-6 mb-6">
+    <h2 class="text-lg font-semibold mb-4">AI Insights</h2>
+    
+    <div id="ai-summary-container" class="bg-gray-50 rounded-lg p-4 mb-4">
+        {% if latest_summary %}
+            <div class="prose max-w-none text-sm sm:text-base">
+                {{ latest_summary.content|markdown }}
+            </div>
+            <p class="text-sm text-gray-500 mt-2">
+                Generated {{ latest_summary.created_at|timesince }} ago
+            </p>
+        {% else %}
+            <p class="text-gray-600">No AI summary generated yet.</p>
+        {% endif %}
+    </div>
+    
+    {% if user == viewed_user %}
+        <div class="text-center">
+            <button id="generate-summary" 
+                    class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors inline-block">
+                Get Insights
+            </button>
+        </div>
+    {% endif %}
+</div>
+
+{% block extra_js %}
+<script>
+document.getElementById('generate-summary')?.addEventListener('click', async function() {
+    this.disabled = true;
+    this.textContent = 'Generating...';
+    
+    try {
+        const response = await fetch(
+            "{% url 'tracker:generate_ai_summary' %}",
+            {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            }
+        );
+        
+        const data = await response.json();
+        
+        const container = document.getElementById('ai-summary-container');
+        container.innerHTML = `
+            <div class="prose max-w-none">
+                ${data.content}
+            </div>
+            <p class="text-sm text-gray-500 mt-2">
+                Generated just now
+            </p>
+        `;
+    } catch (error) {
+        console.error("Error:", error);
+        alert('Error generating summary. Please try again.');
+    } finally {
+        this.disabled = false;
+        this.textContent = 'Generate New Summary';
+    }
+});
+</script>
+{% endblock %} 

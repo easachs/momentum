@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="py-8">
+    <div class="flex flex-col sm:flex-row justify-between items-center mb-8">
+        <h1 class="text-2xl font-bold mb-4 sm:mb-0">Leaderboard</h1>
+        
+        <select onchange="window.location.href='?category=' + this.value"
+                class="bg-white border rounded px-3 py-2 text-gray-700">
+            {% for category in categories %}
+                <option value="{{ category }}" {% if category == selected_category %}selected{% endif %}>
+                    {{ category|title }}
+                </option>
+            {% endfor %}
+        </select>
+    </div>
+    
+    <div class="bg-white rounded-lg shadow overflow-x-auto">
+        <table class="min-w-full">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rank</th>
+                    <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
+                    <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Badges</th>
+                    <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">🏆</th>
+                    <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Rate</th>
+                    <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Habits</th>
+                    <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Streak</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for entry in leaderboard_data %}
+                    <tr class="{% if entry.user == user %}bg-blue-50{% endif %}">
+                        <td class="px-4 sm:px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            {% if forloop.counter == 1 %}🥇
+                            {% elif forloop.counter == 2 %}🥈
+                            {% elif forloop.counter == 3 %}🥉
+                            {% else %}{{ forloop.counter }}
+                            {% endif %}
+                        </td>
+                        <td class="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            <a href="{% url 'tracker:dashboard' username=entry.user.username %}" 
+                               class="text-blue-600 hover:text-blue-800">
+                                {{ entry.user.username }}
+                            </a>
+                        </td>
+                        <td class="px-4 sm:px-6 py-4">
+                            <div class="flex space-x-2">
+                                {% if entry.badges.health %}
+                                    <div class="group relative">
+                                        <div class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+                                            <svg class="h-5 w-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                                            </svg>
+                                        </div>
+                                        <div class="hidden group-hover:block absolute z-10 p-2 bg-gray-900 text-white text-xs rounded shadow-lg -mt-2 ml-8">
+                                            {% if entry.badges.health == 'health_30_day' %}30 Day Health Streak{% else %}7 Day Health Streak{% endif %}
+                                        </div>
+                                    </div>
+                                {% endif %}
+                                <!-- Repeat similar blocks for other badge types -->
+                            </div>
+                        </td>
+                        <td class="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {{ entry.badge_count }}
+                        </td>
+                        <td class="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {{ entry.completion_rate|floatformat:1 }}%
+                        </td>
+                        <td class="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {{ entry.total_habits }}
+                        </td>
+                        <td class="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {{ entry.current_streak }}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %} 
