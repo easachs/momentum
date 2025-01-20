@@ -33,6 +33,7 @@
                             <img src="{% static 'images/momentum.png' %}" alt="Momentum" class="h-8 w-auto">
                         </a>
                         <a href="{% url 'tracker:habit_list' %}" class="text-blue-600 hover:text-blue-800">Habits</a>
+                        <a href="{% url 'jobhunt:application_list' %}" class="text-blue-600 hover:text-blue-800">Applications</a>
                     </div>
                 {% else %}
                     <a href="{% url 'root' %}" class="flex items-center gap-2">

@@ -35,6 +35,7 @@ urlpatterns = [
     path('accounts/', include('allauth.urls')),
     path('admin/', admin.site.urls),
     path('social/', include('social.urls')),
+    path('apps/', include('jobhunt.urls')),
     path('', include('tracker.urls')),
     path("__reload__/", include("django_browser_reload.urls")),
 ]
