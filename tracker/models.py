@@ -163,6 +163,15 @@ class Habit(models.Model):
             # Calculate full weeks since creation, rounding up if there's a partial week
             return (days_since_creation + 6) // 7  # Using integer division to round up
 
+    def get_current_week_completion(self):
+        """Return completion for current week if it exists"""
+        today = timezone.now().date()
+        start_of_week = today - timedelta(days=today.weekday())
+        return self.completions.filter(
+            completed_at__gte=start_of_week,
+            completed_at__lte=today
+        ).first()
+
 
 # Join model - similar to a HABTM or has_many :through in Rails
 class HabitCompletion(models.Model):

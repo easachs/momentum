@@ -29,10 +29,11 @@ class BadgeService:
 
     def check_completion_badges(self):
         """Check and award completion-based badges"""
+        # Get total completions and per-habit counts in one query
         total_completions = HabitCompletion.objects.filter(
             habit__user=self.user
         ).count()
-        
+
         logger.info(f"Checking completion badges for {self.user.username}")
         logger.info(f"Total completions: {total_completions}")
         
@@ -43,19 +44,18 @@ class BadgeService:
             self._award_badge('completions_50')
         if total_completions >= 10:
             self._award_badge('completions_10')
-        
-        # Log all current badges for debugging
-        current_badges = Badge.objects.filter(user=self.user)
-        logger.info(f"Current badges for {self.user.username}: {[b.badge_type for b in current_badges]}")
 
     def check_streak_badges(self):
         """Check and award streak-based badges"""
-        habits = Habit.objects.filter(user=self.user, frequency='daily')
+        habits = (Habit.objects
+            .filter(user=self.user, frequency='daily')
+            .prefetch_related('completions')
+            .select_related('user'))
         
         logger.info(f"Checking streak badges for {self.user.username}")
         
         for category in ['health', 'learning', 'productivity']:
-            category_habits = habits.filter(category=category)
+            category_habits = [h for h in habits if h.category == category]
             longest_streak = max((habit.current_streak() for habit in category_habits), default=0)
             
             logger.info(f"{category} longest streak: {longest_streak}")

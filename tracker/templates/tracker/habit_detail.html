@@ -32,7 +32,7 @@
                         {% csrf_token %}
                         <input type="hidden" name="date" value="{{ today|date:'Y-m-d' }}">
                         <button type="submit" 
-                                class="p-2 rounded-full transition-all duration-200 {% if today_completion %}bg-green-200 text-green-700 hover:bg-green-300{% else %}bg-gray-100 text-gray-400 hover:bg-gray-200{% endif %}">
+                                class="p-2 rounded-full transition-all duration-200 {% if habit.frequency == 'weekly' and this_week_completion or habit.frequency == 'daily' and today_completion %}bg-green-200 text-green-700 hover:bg-green-300{% else %}bg-gray-100 text-gray-400 hover:bg-gray-200{% endif %}">
                             <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                             </svg>
@@ -40,7 +40,7 @@
                     </form>
 
                     <!-- Yesterday's completion (if habit is older than a day) -->
-                    {% if habit.created_at.date <= yesterday %}
+                    {% if habit.created_at.date <= yesterday and habit.frequency == 'daily' %}
                         <form method="post" action="{% url 'tracker:toggle_completion' pk=habit.pk %}" class="inline-flex">
                             {% csrf_token %}
                             <input type="hidden" name="date" value="{{ yesterday|date:'Y-m-d' }}">

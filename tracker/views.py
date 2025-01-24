@@ -8,8 +8,8 @@ from django.views.decorators.http import require_POST, require_http_methods
 from django.contrib.auth.decorators import login_required
 from datetime import datetime, timedelta
 from django.utils import timezone
-from django.db.models import Count, Q
-from django.db.models.functions import TruncWeek, TruncMonth
+from django.db.models import Count, Q, Prefetch
+from django.db.models.functions import TruncWeek, TruncMonth, ExtractWeek
 from django.contrib import messages
 from django.urls import reverse
 from django.views.decorators.csrf import csrf_protect
@@ -26,10 +26,17 @@ logger = logging.getLogger(__name__)
 class HabitListView(LoginRequiredMixin, ListView):
     model = Habit
     template_name = "tracker/habit_list.html"
-    context_object_name = 'habits_summary'
+    context_object_name = 'habits'
 
     def get_queryset(self):
-        return Habit.objects.filter(user=self.request.user)
+        return Habit.objects.filter(user=self.request.user).prefetch_related(
+            Prefetch(
+                'completions',
+                queryset=HabitCompletion.objects.filter(
+                    completed_at__gte=timezone.now().date() - timedelta(days=7)
+                )
+            )
+        )
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -208,45 +215,66 @@ class HabitDetailView(LoginRequiredMixin, DetailView):
     template_name = "tracker/habit_detail.html"
 
     def get_queryset(self):
-        # Only allow viewing own habits
-        return Habit.objects.filter(user=self.request.user)
+        return Habit.objects.filter(user=self.request.user).prefetch_related(
+            Prefetch(
+                'completions',
+                queryset=HabitCompletion.objects.filter(
+                    completed_at__gte=timezone.now().date() - timedelta(days=30)
+                )
+            )
+        )
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         today = timezone.now().date()
         yesterday = today - timedelta(days=1)
-        start_of_week = today - timezone.timedelta(days=today.weekday())
-        start_of_month = today.replace(day=1)
+        start_of_week = today - timedelta(days=today.weekday())
         habit = self.get_object()
-
-        # Calculate total possible completions and actual completions
-        days_since_creation = (today - habit.created_at.date()).days + 1
-        total_possible = days_since_creation if habit.frequency == 'daily' else (days_since_creation + 6) // 7
-
-        completions = habit.completions.filter(completed_at__gte=habit.created_at.date()).count()
+        
+        # Get all needed completions in one query
+        completions_qs = habit.completions.all()  # Already prefetched
         
         context.update({
             'today': today,
             'yesterday': yesterday,
-            'today_completion': HabitCompletion.objects.filter(
-                habit=habit,
-                completed_at=today
-            ).exists(),
-            'yesterday_completion': HabitCompletion.objects.filter(
-                habit=habit,
-                completed_at=yesterday
-            ).exists(),
+            'today_completion': any(c.completed_at == today for c in completions_qs),
+            'yesterday_completion': any(c.completed_at == yesterday for c in completions_qs),
             'analytics': {
-                'total_completions': completions,
-                'total_possible': total_possible,
-                'completion_rate': (completions / total_possible * 100) if total_possible > 0 else 0,
-                'this_week_completions': habit.completions.filter(completed_at__gte=start_of_week).count(),
-                'this_month_completions': habit.completions.filter(completed_at__gte=start_of_month).count(),
+                'total_completions': completions_qs.count(),
+                'total_possible': habit.get_total_possible_completions(),
+                'this_week_completions': sum(1 for c in completions_qs if c.completed_at >= today - timedelta(days=today.weekday())),
+                'this_month_completions': sum(1 for c in completions_qs if c.completed_at.month == today.month),
                 'current_streak': habit.current_streak(),
                 'longest_streak': habit.longest_streak(),
             }
         })
+        if habit.frequency == 'weekly':
+            context['this_week_completion'] = habit.completions.filter(
+                completed_at__gte=start_of_week,
+                completed_at__lte=today
+            ).exists()
         return context
+
+    def _get_habit_analytics(self, habit):
+        today = timezone.now().date()
+        start_of_week = today - timedelta(days=today.weekday())
+        start_of_month = today.replace(day=1)
+        
+        # Calculate total possible completions and actual completions
+        days_since_creation = (today - habit.created_at.date()).days + 1
+        total_possible = days_since_creation if habit.frequency == 'daily' else (days_since_creation + 6) // 7
+        
+        completions = habit.completions.filter(completed_at__gte=habit.created_at.date()).count()
+        
+        return {
+            'total_completions': completions,
+            'total_possible': total_possible,
+            'completion_rate': (completions / total_possible * 100) if total_possible > 0 else 0,
+            'this_week_completions': habit.completions.filter(completed_at__gte=start_of_week).count(),
+            'this_month_completions': habit.completions.filter(completed_at__gte=start_of_month).count(),
+            'current_streak': habit.current_streak(),
+            'longest_streak': habit.longest_streak(),
+        }
 
 
 class HabitCreateView(LoginRequiredMixin, CreateView):
@@ -285,15 +313,71 @@ class HabitDeleteView(LoginRequiredMixin, DeleteView):
         return Habit.objects.filter(user=self.request.user)
 
 
-@login_required
 @require_POST
+@login_required
 def toggle_habit_completion(request, pk):
-    habit = get_object_or_404(Habit, pk=pk, user=request.user)
-    date = request.POST.get('date')
-    if date:
-        habit.toggle_completion(timezone.datetime.strptime(date, '%Y-%m-%d').date())
+    habit = get_object_or_404(
+        Habit.objects.select_related('user'),
+        pk=pk, user=request.user
+    )
+    date_str = request.POST.get('date')
+    if date_str:
+        date = datetime.strptime(date_str, '%Y-%m-%d').date()
     else:
-        habit.toggle_completion()
+        date = timezone.now().date()
+    today = timezone.now().date()
+    
+    # For weekly habits, enforce strict rules
+    if habit.frequency == 'weekly':
+        # Calculate start of the selected week and current week
+        selected_week_start = date - timedelta(days=date.weekday())
+        current_week_start = today - timedelta(days=today.weekday())
+        
+        # Get all needed data in one query
+        existing_completion = habit.completions.filter(
+            completed_at__gte=current_week_start,
+            completed_at__lte=today
+        ).select_related('habit').first()
+        
+        if existing_completion:
+            # If toggling same day, delete it
+            if existing_completion.completed_at == date:
+                existing_completion.delete()
+            else:
+                return JsonResponse({
+                    'error': 'This habit has already been completed this week'
+                }, status=400)
+        else:
+            # Create new completion for today only
+            HabitCompletion.objects.create(
+                habit=habit,
+                completed_at=today
+            )
+        # Check badges after modifying completions
+        badge_service = BadgeService(request.user)
+        badge_service.check_completion_badges()
+        
+        referer = request.META.get('HTTP_REFERER')
+        if referer:
+            return redirect(referer)
+        return redirect('tracker:habit_detail', pk=pk)
+
+    # For daily habits, continue with existing logic
+    completion = HabitCompletion.objects.filter(
+        habit=habit, 
+        completed_at=date
+    ).first()
+    
+    if completion:
+        completion.delete()
+    else:
+        HabitCompletion.objects.create(
+            habit=habit,
+            completed_at=date
+        )
+    # Check badges after modifying completions
+    badge_service = BadgeService(request.user)
+    badge_service.check_completion_badges()
     
     referer = request.META.get('HTTP_REFERER')
     if referer:

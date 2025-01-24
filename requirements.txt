@@ -2,6 +2,7 @@
 Django==5.1.5
 python-dotenv==1.0.0
 honcho==1.1.0
+pytz==2024.1
 
 # Authentication
 django-allauth==0.61.1
