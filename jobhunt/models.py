@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from datetime import timedelta
+from django.conf import settings
 
 class Application(models.Model):
     STATUS_CHOICES = [
@@ -110,3 +111,37 @@ class StatusChange(models.Model):
 
     def __str__(self):
         return f"{self.application}: {self.old_status or 'Initial'} → {self.new_status}"
+
+class Contact(models.Model):
+    ROLE_CHOICES = [
+        ('hiring_manager', 'Hiring Manager'),
+        ('reference', 'Reference'),
+        ('recruiter', 'Recruiter'),
+        ('interviewer', 'Interviewer'),
+        ('other', 'Other'),
+    ]
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='contacts'
+    )
+    name = models.CharField(max_length=100)
+    role = models.CharField(
+        max_length=20,
+        choices=ROLE_CHOICES,
+        default='other'
+    )
+    company = models.CharField(max_length=100)
+    email = models.EmailField(blank=True)
+    phone = models.CharField(max_length=20, blank=True)
+    notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['name']
+        unique_together = ['user', 'email']  # Prevent duplicate contacts
+
+    def __str__(self):
+        return f"{self.name} ({self.get_role_display()} at {self.company})"
