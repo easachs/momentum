@@ -1,10 +1,10 @@
 from django.urls import reverse_lazy, reverse
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
 from django.contrib.auth.mixins import LoginRequiredMixin
-from .models import Application, Contact
-from .forms import ApplicationForm, ContactForm
 from django.db import models
 from django.utils import timezone
+from .models import Application, Contact
+from .forms import ApplicationForm, ContactForm
 
 class ApplicationListView(LoginRequiredMixin, ListView):
     model = Application
@@ -16,13 +16,13 @@ class ApplicationListView(LoginRequiredMixin, ListView):
         status = self.request.GET.get('status')
         if status and status != 'all':
             queryset = queryset.filter(status=status)
-        
+
         # Always sort by due date, with nulls last
         queryset = queryset.order_by(
             models.F('due').asc(nulls_last=True),
             '-created_at'
         )
-        
+
         return queryset
 
     def get_context_data(self, **kwargs):

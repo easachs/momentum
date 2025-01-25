@@ -1,6 +1,5 @@
 from django.db import models
 from django.conf import settings
-from django.urls import reverse
 
 class Friendship(models.Model):
     STATUS_CHOICES = [
@@ -8,7 +7,7 @@ class Friendship(models.Model):
         ('accepted', 'Accepted'),
         ('declined', 'Declined')
     ]
-    
+
     sender = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         related_name='sent_friendships',
@@ -36,6 +35,6 @@ class Friendship(models.Model):
 
     class Meta:
         unique_together = ('sender', 'receiver')
-        
+
     def __str__(self):
-        return f"{self.sender} -> {self.receiver} ({self.status})" 
+        return f"{self.sender} -> {self.receiver} ({self.status})"

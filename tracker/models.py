@@ -1,12 +1,10 @@
+from datetime import timedelta
 from django.db import models
 from django.core.validators import MinLengthValidator
 from django.urls import reverse
 from django.contrib.auth import get_user_model
 from django.utils import timezone
-from datetime import timedelta
 from django.conf import settings
-from tracker.templatetags.markdown.filters import markdown_filter
-
 
 # Models in Django are similar to ActiveRecord models in Rails
 # They inherit from models.Model instead of ApplicationRecord
@@ -75,7 +73,7 @@ class Habit(models.Model):
     def is_completed_for_date(self, date=None):
         if date is None:
             date = timezone.now().date()
-        
+
         if self.frequency == 'weekly':
             # For weekly habits, check if completed any time this week
             start_of_week = date - timedelta(days=date.weekday())
@@ -90,7 +88,7 @@ class Habit(models.Model):
     def toggle_completion(self, date=None):
         if date is None:
             date = timezone.now().date()
-        
+
         if self.frequency == 'weekly':
             # For weekly habits, find any completion this week
             start_of_week = date - timedelta(days=date.weekday())
@@ -98,7 +96,7 @@ class Habit(models.Model):
                 completed_at__gte=start_of_week,
                 completed_at__lte=date
             ).first()
-            
+
             if completion:
                 # If already completed this week, remove the completion
                 completion.delete()
@@ -129,11 +127,11 @@ class Habit(models.Model):
         else:  # weekly
             current_week_start = today - timedelta(days=today.weekday())
             week_start = current_week_start
-            
+
             while True:  # Ruby's loop do
                 week_end = week_start + timedelta(days=6)
                 if self.completions.filter(
-                    completed_at__gte=week_start, 
+                    completed_at__gte=week_start,
                     completed_at__lte=week_end
                 ).exists():
                     streak += 1
@@ -182,7 +180,7 @@ class Habit(models.Model):
         """Calculate total possible completions since habit creation"""
         today = timezone.now().date()
         days_since_creation = (today - self.created_at.date()).days + 1  # +1 to include today
-        
+
         if self.frequency == 'daily':
             return days_since_creation
         else:  # weekly
@@ -208,9 +206,9 @@ class HabitCompletion(models.Model):
         related_name='completions'  # has_many :completions
     )
     completed_at = models.DateField()
-    
+
     class Meta:
-        # Compound unique index - Rails: add_index :habit_completions, [:habit_id, :completed_at], unique: true
+        # This ensures database-level uniqueness
         unique_together = ['habit', 'completed_at']
         # Default ordering - Rails: default_scope { order(completed_at: :desc) }
         ordering = ['-completed_at']
@@ -246,7 +244,7 @@ class Badge(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     badge_type = models.CharField(max_length=50, choices=BADGE_CHOICES)
     created_at = models.DateTimeField(auto_now_add=True)
-    
+
     class Meta:
         unique_together = ('user', 'badge_type')
 

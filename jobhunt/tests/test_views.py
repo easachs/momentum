@@ -1,8 +1,8 @@
+from datetime import date
 from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth import get_user_model
 from jobhunt.models import Application
-from datetime import date
 
 class ApplicationViewTests(TestCase):
     def setUp(self):
@@ -12,7 +12,7 @@ class ApplicationViewTests(TestCase):
             password='testpass123'
         )
         self.client.login(username='testuser', password='testpass123')
-        
+
         self.application = Application.objects.create(
             user=self.user,
             company='Test Company',
@@ -35,7 +35,7 @@ class ApplicationViewTests(TestCase):
             title='Position A',
             status='wishlist'
         )
-        
+
         # Test filtering by status
         response = self.client.get(reverse('jobhunt:application_list') + '?status=wishlist')
         self.assertEqual(len(response.context['applications']), 1)
@@ -50,7 +50,7 @@ class ApplicationViewTests(TestCase):
             status='wishlist',
             due=date(2024, 1, 1)
         )
-        
+
         # Test sorting by due date
         response = self.client.get(reverse('jobhunt:application_list') + '?sort=due')
         applications = list(response.context['applications'])
@@ -127,4 +127,4 @@ class ApplicationViewTests(TestCase):
         applications = list(response.context['applications'])
         self.assertTrue(
             applications[0].due <= applications[1].due
-        ) 
+        )

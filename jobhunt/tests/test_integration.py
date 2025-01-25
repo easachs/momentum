@@ -1,8 +1,8 @@
+from datetime import date
 from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth import get_user_model
-from jobhunt.models import Application, StatusChange
-from datetime import date
+from jobhunt.models import Application
 
 class ApplicationIntegrationTests(TestCase):
     def setUp(self):
@@ -27,13 +27,13 @@ class ApplicationIntegrationTests(TestCase):
             }
         )
         self.assertEqual(response.status_code, 302)
-        
+
         # Get the created application
         application = Application.objects.get(title='Lifecycle Position')
-        
+
         # No status change should be created for initial wishlist status
         self.assertEqual(application.status_changes.count(), 0)
-        
+
         # Update status to applied
         response = self.client.post(
             reverse('jobhunt:application_update', kwargs={'pk': application.pk}),
@@ -46,13 +46,13 @@ class ApplicationIntegrationTests(TestCase):
             }
         )
         self.assertEqual(response.status_code, 302)
-        
+
         # Verify status change was recorded
         application.refresh_from_db()
         latest_status = application.status_changes.latest('changed_at')
         self.assertEqual(latest_status.old_status, 'wishlist')
         self.assertEqual(latest_status.new_status, 'applied')
-        
+
         # Delete application
         response = self.client.post(
             reverse('jobhunt:application_delete', kwargs={'pk': application.pk})
@@ -65,7 +65,7 @@ class ApplicationIntegrationTests(TestCase):
     def test_filtering_workflow(self):
         """Test the filtering and sorting workflow"""
         # Create applications with different statuses
-        applications = [
+        [
             Application.objects.create(
                 user=self.user,
                 company=f'Company {i}',
@@ -74,7 +74,7 @@ class ApplicationIntegrationTests(TestCase):
                 due=date(2024, i+1, 1)
             ) for i, status in enumerate(['wishlist', 'applied', 'interviewing'])
         ]
-        
+
         # Test filtering by each status
         for status in ['wishlist', 'applied', 'interviewing']:
             response = self.client.get(f"{reverse('jobhunt:application_list')}?status={status}")
@@ -96,19 +96,19 @@ class ApplicationIntegrationTests(TestCase):
             title='History Position',
             status='wishlist'
         )
-        
+
         status_sequence = ['applied', 'interviewing', 'offered']
         for status in status_sequence:
             application.status = status
             application.save()
-        
+
         # Verify status history
         changes = application.status_changes.all()
         self.assertEqual(len(changes), len(status_sequence))  # No change for initial wishlist
-        
+
         # Verify order of changes
         statuses = ['wishlist'] + status_sequence[:-1]  # old statuses
         new_statuses = status_sequence  # new statuses
         for i in range(len(changes)):
             self.assertEqual(changes[i].old_status, statuses[i])
-            self.assertEqual(changes[i].new_status, new_statuses[i]) 
+            self.assertEqual(changes[i].new_status, new_statuses[i])

@@ -1,28 +1,26 @@
+import logging
+from datetime import datetime, timedelta
 from django.db import models
-from django.urls import reverse_lazy
 from django.views.generic import (CreateView, DeleteView, DetailView, ListView,
                                   UpdateView)
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import redirect, get_object_or_404
-from django.http import JsonResponse, HttpResponse
+from django.http import JsonResponse
 from django.views.decorators.http import require_POST, require_http_methods
 from django.contrib.auth.decorators import login_required
-from datetime import datetime, timedelta
 from django.utils import timezone
-from django.db.models import Count, Q, Prefetch, Subquery, OuterRef, Case, When, Value
-from django.db.models.functions import TruncWeek, TruncMonth, ExtractWeek
-from django.contrib import messages
+from django.db.models import Count, Q, Prefetch, Case, When, Value
 from django.urls import reverse
 from django.views.decorators.csrf import csrf_protect
-import logging
+from django.db.models.functions import Cast
+from social.models import Friendship
 
+from tracker.templatetags.markdown.filters import markdown_filter
 from .models import Habit, HabitCompletion, AIHabitSummary
 from .services.ai.ai_service import AIHabitService
-from tracker.templatetags.markdown.filters import markdown_filter
 from .services.badges.badge_service import BadgeService
 
 logger = logging.getLogger(__name__)
-
 
 class HabitListView(LoginRequiredMixin, ListView):
     model = Habit
@@ -30,9 +28,6 @@ class HabitListView(LoginRequiredMixin, ListView):
     context_object_name = 'habits'
 
     def get_queryset(self):
-        from django.db.models import Value
-        from django.db.models.functions import Cast
-        
         today = timezone.now().date()
         start_of_week = today - timedelta(days=today.weekday())
         start_of_month = today.replace(day=1)
@@ -40,12 +35,14 @@ class HabitListView(LoginRequiredMixin, ListView):
         return (Habit.objects.filter(user=self.request.user)
             .select_related('user')
             .annotate(
-                completed_today=Count('completions', 
+                completed_today=Count('completions',
                     filter=Q(completions__completed_at=Cast(Value(today), output_field=models.DateField()))),
-                completed_this_week=Count('completions', 
-                    filter=Q(completions__completed_at__gte=Cast(Value(start_of_week), output_field=models.DateField()))),
-                month_count=Count('completions', 
-                    filter=Q(completions__completed_at__gte=Cast(Value(start_of_month), output_field=models.DateField()))),
+                completed_this_week=Count('completions',
+                    filter=Q(completions__completed_at__gte=Cast(Value(start_of_week),
+                                                                 output_field=models.DateField()))),
+                month_count=Count('completions',
+                    filter=Q(completions__completed_at__gte=Cast(Value(start_of_month),
+                                                                 output_field=models.DateField()))),
                 total_completions=Count('completions'),
                 # Add annotations for notifications
                 needs_completion_daily=Case(
@@ -66,22 +63,19 @@ class HabitListView(LoginRequiredMixin, ListView):
         context = super().get_context_data(**kwargs)
         context['viewed_user'] = self.request.user
         habits = self.get_queryset()
-        
+
         # Add friendship status
         if self.request.user != self.request.user:
             friendship = Friendship.objects.filter(
                 (Q(sender=self.request.user, receiver=self.request.user) |
                  Q(sender=self.request.user, receiver=self.request.user))
             ).first()
-            
+
             context['friendship'] = friendship
-        
+
         today = timezone.now().date()
         start_of_week = today - timedelta(days=today.weekday())
-        start_of_month = today.replace(day=1)
-        thirty_days_ago = today - timedelta(days=30)
-        
-        
+
         # Add category filter
         selected_category = self.request.GET.get('category')
         if selected_category:
@@ -154,11 +148,11 @@ class HabitListView(LoginRequiredMixin, ListView):
             completed_today=Count('completions', filter=Q(completions__completed_at=today)),
             completed_this_week=Count('completions', filter=Q(completions__completed_at__gte=start_of_week))
         )
-        
+
         # View mode handling (similar to Rails params[:view])
         view_mode = self.request.GET.get('view', 'frequency')
         context['view_mode'] = view_mode
-        
+
         if view_mode == 'category':
             # Group by category
             categorized_habits = {}
@@ -167,28 +161,28 @@ class HabitListView(LoginRequiredMixin, ListView):
                     'label': label,
                     'habits': []
                 }
-            
+
             for habit in habits:
                 habit.streak = habit.current_streak()
                 categorized_habits[habit.category]['habits'].append(habit)
-            
+
             context['categorized_habits'] = categorized_habits
             context['has_any_habits'] = any(data['habits'] for data in categorized_habits.values())
         else:
             # Original frequency-based grouping
             daily_habits = []
             weekly_habits = []
-            
+
             for habit in habits:
                 habit.streak = habit.current_streak()
                 if habit.frequency == 'daily':
                     daily_habits.append(habit)
                 else:
                     weekly_habits.append(habit)
-            
+
             context['daily_habits'] = daily_habits
             context['weekly_habits'] = weekly_habits
-        
+
         # Add the rest of the analytics...
         context['analytics'] = {
             'total_completions': total_completions,
@@ -211,7 +205,6 @@ class HabitListView(LoginRequiredMixin, ListView):
 
         return context
 
-
 class HabitDetailView(LoginRequiredMixin, DetailView):
     model = Habit
     template_name = "tracker/habit_detail.html"
@@ -232,14 +225,14 @@ class HabitDetailView(LoginRequiredMixin, DetailView):
         yesterday = today - timedelta(days=1)
         start_of_week = today - timedelta(days=today.weekday())
         habit = self.get_object()
-        
+
         # Get all needed completions in one query
         completions_qs = habit.completions.all()  # Already prefetched
-        
+
         # Check for completion based on habit frequency
         if habit.frequency == 'weekly':
             today_completed = any(
-                c.completed_at >= start_of_week and c.completed_at <= today 
+                c.completed_at >= start_of_week and c.completed_at <= today
                 for c in completions_qs
             )
         else:  # daily
@@ -265,13 +258,13 @@ class HabitDetailView(LoginRequiredMixin, DetailView):
         today = timezone.now().date()
         start_of_week = today - timedelta(days=today.weekday())
         start_of_month = today.replace(day=1)
-        
+
         # Calculate total possible completions and actual completions
         days_since_creation = (today - habit.created_at.date()).days + 1
         total_possible = days_since_creation if habit.frequency == 'daily' else (days_since_creation + 6) // 7
-        
+
         completions = habit.completions.filter(completed_at__gte=habit.created_at.date()).count()
-        
+
         return {
             'total_completions': completions,
             'total_possible': total_possible,
@@ -281,7 +274,6 @@ class HabitDetailView(LoginRequiredMixin, DetailView):
             'current_streak': habit.current_streak(),
             'longest_streak': habit.longest_streak(),
         }
-
 
 class HabitCreateView(LoginRequiredMixin, CreateView):
     model = Habit
@@ -295,33 +287,31 @@ class HabitCreateView(LoginRequiredMixin, CreateView):
         form.instance.user = self.request.user
         return super().form_valid(form)
 
-
 class HabitUpdateView(LoginRequiredMixin, UpdateView):
     model = Habit
     fields = ["name", "description", "frequency", "category"]
     template_name = "tracker/habit_form.html"
-    
+
     def get_success_url(self):
         return reverse('social:dashboard', kwargs={'username': self.request.user.username})
 
     def get_queryset(self):
         return Habit.objects.filter(user=self.request.user)
-
 
 class HabitDeleteView(LoginRequiredMixin, DeleteView):
     model = Habit
     template_name = "tracker/habit_confirm_delete.html"
-    
+
     def get_success_url(self):
         return reverse('social:dashboard', kwargs={'username': self.request.user.username})
 
     def get_queryset(self):
         return Habit.objects.filter(user=self.request.user)
 
-
 @require_POST
 @login_required
 def toggle_habit_completion(request, pk):
+    # Use select_related to get user in same query
     habit = get_object_or_404(
         Habit.objects.select_related('user'),
         pk=pk, user=request.user
@@ -331,54 +321,39 @@ def toggle_habit_completion(request, pk):
         date = datetime.strptime(date_str, '%Y-%m-%d').date()
     else:
         date = timezone.now().date()
-    today = timezone.now().date()
-    
-    start_of_week = date - timedelta(days=date.weekday())
-    
-    if habit.frequency == 'weekly':
-        # For weekly habits, find any completion this week
-        existing_completion = HabitCompletion.objects.filter(
-            habit=habit,
-            completed_at__gte=start_of_week,
-            completed_at__lte=date
-        ).first()
-        
-        if existing_completion:
-            # If completed this week, delete the completion
-            existing_completion.delete()
-        else:
-            # If not completed this week, create a completion
-            HabitCompletion.objects.create(habit=habit, completed_at=date)
-    else:
-        # Handle daily habits
-        existing_completion = HabitCompletion.objects.filter(
+
+    # Use filter().exists() instead of first() to reduce data transfer
+    existing_completion = HabitCompletion.objects.filter(
+        habit=habit,
+        completed_at=date
+    ).exists()
+
+    if existing_completion:
+        HabitCompletion.objects.filter(
             habit=habit,
             completed_at=date
-        ).first()
+        ).delete()
+    else:
+        HabitCompletion.objects.create(
+            habit=habit,
+            completed_at=date
+        )
 
-        if existing_completion:
-            # If toggling same day, delete it
-            existing_completion.delete()
-        else:
-            # Create new completion
-            HabitCompletion.objects.create(habit=habit, completed_at=date)
-    
-    # Check badges after modifying completions
-    badge_service = BadgeService(request.user)
-    badge_service.check_completion_badges()
-    
+    # Only check badges if we're completing (not un-completing)
+    if not existing_completion:
+        badge_service = BadgeService(request.user)
+        badge_service.check_completion_badges()
+
     referer = request.META.get('HTTP_REFERER')
     if referer:
         return redirect(referer)
     return redirect('tracker:habit_detail', pk=pk)
-
 
 def root_redirect(request):
     """Redirect root URL to either dashboard or login page"""
     if request.user.is_authenticated:
         return redirect('social:dashboard', username=request.user.username)
     return redirect('account_login')
-
 
 @login_required
 @csrf_protect
@@ -387,20 +362,20 @@ def generate_ai_summary(request):
     try:
         service = AIHabitService()
         summary_content = service.generate_habit_summary(request.user)
-        
+
         if summary_content.startswith('Error:'):
             return JsonResponse({
                 'error': summary_content
             }, status=500)
-        
+
         summary = AIHabitSummary.objects.create(
             user=request.user,
             content=summary_content
         )
-        
+
         # Render the markdown to HTML before sending
         rendered_content = markdown_filter(summary_content)
-        
+
         return JsonResponse({
             'content': rendered_content,  # This is now HTML
             'raw_content': summary_content,  # Keep the raw markdown just in case

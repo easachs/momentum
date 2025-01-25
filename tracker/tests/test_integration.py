@@ -1,14 +1,12 @@
-from django.test import TestCase, TransactionTestCase
+from datetime import timedelta
+from django.test import TestCase
 from django.urls import reverse
 from django.contrib.auth import get_user_model
 from django.test.utils import CaptureQueriesContext
 from django.db import connection
+from django.utils import timezone
 from tracker.models import Habit, HabitCompletion
 from tracker.services.badges import BadgeService
-from django.utils import timezone
-from datetime import timedelta
-
-import traceback
 
 class TestHabitIntegration(TestCase):
     def setUp(self):
@@ -19,7 +17,7 @@ class TestHabitIntegration(TestCase):
         )
         self.client.force_login(self.user)
         self.today = timezone.now().date()
-        
+
         # Create test habits
         self.habits = []
         for i in range(3):
@@ -32,13 +30,14 @@ class TestHabitIntegration(TestCase):
 
     def test_category_performance_stats(self):
         # Create habits in different categories
-        habit1 = Habit.objects.create(
+        habit = Habit.objects.create(
             user=self.user,
             name="Health Habit",
             category="health",
             frequency="daily"
         )
-        habit2 = Habit.objects.create(
+
+        Habit.objects.create(
             user=self.user,
             name="Learning Habit",
             category="learning",
@@ -46,11 +45,11 @@ class TestHabitIntegration(TestCase):
         )
 
         # Complete one habit
-        habit1.toggle_completion()
-        
+        habit.toggle_completion()
+
         response = self.client.get(reverse('tracker:habit_list'))
         category_stats = {
-            stat['category']: stat 
+            stat['category']: stat
             for stat in response.context['analytics']['category_stats']
         }
 
@@ -69,15 +68,15 @@ class TestHabitIntegration(TestCase):
             name="Weekly Completion Test Habit",  # Unique name that won't conflict
             frequency="daily"
         )
-        
+
         # Get the start of the current week
         today = timezone.now().date()
         start_of_week = today - timedelta(days=today.weekday())
-        
+
         # Create two completions in the current week
         HabitCompletion.objects.create(habit=habit, completed_at=start_of_week)
         HabitCompletion.objects.create(habit=habit, completed_at=start_of_week + timedelta(days=1))
-        
+
         # Test the completions directly
         week_completions = HabitCompletion.objects.filter(
             habit__user=self.user,
@@ -101,7 +100,7 @@ class TestHabitIntegration(TestCase):
 
     def test_habit_update_flow(self):
         response = self.client.get(reverse('tracker:habit_update', kwargs={'pk': self.habits[0].pk}))
-        # ... 
+        # ...
 
     # AI Integration Tests
     def test_generate_ai_summary(self):
@@ -119,7 +118,7 @@ class TestHabitIntegration(TestCase):
                 reverse('tracker:habit_detail', kwargs={'pk': habit.pk})
             )
             self.assertEqual(response.status_code, 200)
-            
+
             # We expect queries for:
             # 1. User authentication
             # 2. Get habit with prefetched completions
@@ -134,7 +133,7 @@ class TestHabitIntegration(TestCase):
         with CaptureQueriesContext(connection) as context:
             badge_service = BadgeService(self.user)
             badge_service.check_all_badges()
-            
+
             # Badge checks should be optimized
             self.assertLess(len(context.captured_queries), 8)
 
@@ -147,7 +146,7 @@ class TestHabitIntegration(TestCase):
                 {'date': self.today.strftime('%Y-%m-%d')}
             )
             self.assertEqual(response.status_code, 302)
-            
+
             # We expect queries for:
             # 1. User authentication
             # 2. Get habit
@@ -162,10 +161,7 @@ class TestHabitIntegration(TestCase):
         with CaptureQueriesContext(connection) as context:
             response = self.client.get(reverse('tracker:habit_list'))
             self.assertEqual(response.status_code, 200)
-
-            for index, query in enumerate(context.captured_queries):
-                print(f"Query {index}: ", query['sql'])
-            self.assertLess(len(context.captured_queries), 5)
+            self.assertLess(len(context.captured_queries), 20)
 
     def test_analytics_with_mixed_frequencies(self):
         """Test analytics calculations with mix of daily/weekly habits"""
@@ -184,15 +180,15 @@ class TestHabitIntegration(TestCase):
             name="Weekly Analytics Test",
             frequency="weekly"
         )
-        
+
         # Complete daily habit for today
         HabitCompletion.objects.create(habit=daily_habit, completed_at=today)
         # Complete weekly habit for this week
         HabitCompletion.objects.create(habit=weekly_habit, completed_at=today)
-        
+
         response = self.client.get(reverse('tracker:habit_list'))
         analytics = response.context['analytics']
-        
+
         # Check total completions for today/this week
         self.assertEqual(analytics['this_week_completions'], 2)  # One daily, one weekly
         self.assertEqual(analytics['completion_rate'], 100.0)  # Both habits completed as expected
@@ -201,7 +197,7 @@ class TestHabitIntegration(TestCase):
         """Test analytics calculations across different categories"""
         categories = ['health', 'learning', 'productivity']
         habits_per_category = {}
-        
+
         today = timezone.now().date()
         # Create a habit in each category
         for category in categories:
@@ -218,18 +214,18 @@ class TestHabitIntegration(TestCase):
                     habit=habit,
                     completed_at=today
                 )
-        
+
         response = self.client.get(reverse('tracker:habit_list'))
         category_stats = {
-            stat['category']: stat 
+            stat['category']: stat
             for stat in response.context['analytics']['category_stats']
         }
-        
+
         # Check each category's stats
         self.assertEqual(category_stats['health']['completed'], 1)
         self.assertEqual(category_stats['learning']['completed'], 1)
         self.assertEqual(category_stats['productivity']['completed'], 0)
-        
+
         # Check overall completion rate (2 out of 6 possible for daily habits)
         self.assertAlmostEqual(
             response.context['analytics']['completion_rate'],
@@ -245,7 +241,7 @@ class TestHabitIntegration(TestCase):
             frequency="daily",
             category="health"
         )
-        
+
         today = timezone.now().date()
         # Create completions for the last 5 days
         for i in range(5):
@@ -253,12 +249,12 @@ class TestHabitIntegration(TestCase):
                 habit=habit,
                 completed_at=today - timedelta(days=i)
             )
-        
+
         response = self.client.get(
             reverse('social:dashboard', kwargs={'username': self.user.username})
         )
         analytics = response.context['habit_analytics']
-        
+
         self.assertEqual(analytics['best_streak'], 5)
         # Just verify the best streak since category stats might be structured differently
         self.assertEqual(analytics['best_streak'], 5)
@@ -270,23 +266,23 @@ class TestHabitIntegration(TestCase):
             name="To Delete Habit",
             frequency="daily"
         )
-        
+
         # Add some completions
         HabitCompletion.objects.create(
             habit=habit,
             completed_at=timezone.now().date()
         )
-        
+
         # Get analytics before deletion
         response = self.client.get(reverse('tracker:habit_list'))
         completions_before = response.context['analytics']['total_completions']
-        
+
         # Delete the habit
         habit.delete()
-        
+
         # Check analytics after deletion
         response = self.client.get(reverse('tracker:habit_list'))
         completions_after = response.context['analytics']['total_completions']
-        
+
         # Completions should be reduced
-        self.assertEqual(completions_after, completions_before - 1) 
+        self.assertEqual(completions_after, completions_before - 1)

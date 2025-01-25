@@ -1,7 +1,7 @@
+from datetime import timedelta
 from django.db import models
 from django.contrib.auth import get_user_model
 from django.utils import timezone
-from datetime import timedelta
 from django.conf import settings
 
 class Application(models.Model):
@@ -31,7 +31,7 @@ class Application(models.Model):
         null=False,
         blank=False
     )
-    
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     updated_at = models.DateTimeField(auto_now=True)
@@ -48,7 +48,7 @@ class Application(models.Model):
     )
 
     link = models.URLField(
-        blank=True, 
+        blank=True,
         null=True
     )
 
@@ -60,16 +60,16 @@ class Application(models.Model):
     def save(self, *args, **kwargs):
         # Check if this is a new instance
         is_new = self._state.adding
-        
+
         # Get the old status if this is an existing instance
         if not is_new:
             old_status = Application.objects.get(pk=self.pk).status
         else:
             old_status = 'wishlist'  # For new instances, old status is wishlist
-        
+
         # Save the application
         super().save(*args, **kwargs)
-        
+
         # Create status change record if status changed
         if old_status != self.status:
             # Only skip status change for new wishlist applications
@@ -91,7 +91,7 @@ class Application(models.Model):
         now = timezone.now()
         week_ago = now - timedelta(days=7)
         month_ago = now - timedelta(days=30)
-        
+
         total = cls.objects.filter(user=user).count()  # Count ALL applications
         week = cls.objects.filter(user=user, created_at__gte=week_ago).count()
         month = cls.objects.filter(user=user, created_at__gte=month_ago).count()

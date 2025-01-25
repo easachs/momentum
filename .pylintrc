@@ -1,0 +1,16 @@
+[MASTER]
+load-plugins=pylint_django
+django-settings-module=momentum.settings
+
+[MESSAGES CONTROL]
+disable=C0111,  # Missing docstring warning
+        C0103,  # Invalid name (e.g., variable name too short/not snake_case)
+       ; C0303,   # Trailing whitespace warning
+       ; W0611,   # Unused import warning
+       ; C0413,   # Wrong import position (imports not at top of file)
+       ; R0903,   # Too few public methods warning
+       ; R0913,   # Too many arguments warning
+       ; E0401    # Unable to import module error
+
+[FORMAT]
+max-line-length=120

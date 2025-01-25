@@ -1,4 +1,5 @@
 from django.test import TestCase
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.contrib.auth import get_user_model
 from social.models import Friendship
@@ -6,6 +7,7 @@ from tracker.models import Habit, HabitCompletion
 from django.utils import timezone
 from datetime import timedelta
 from unittest import mock
+from django.db import connection
 
 class TestSocialViews(TestCase):
     def setUp(self):
@@ -269,5 +271,31 @@ class TestSocialViews(TestCase):
         self.assertEqual(health_stats['completed'], 6)  # Actual completions
         self.assertAlmostEqual(health_stats['percentage'], 66.7, places=1)  # Completion rate 
 
+    def test_get_habit_analytics_query_efficiency(self):
+        """Test that get_habit_analytics uses efficient queries"""
+        # Create some test habits with completions
+        habits = []
+        for i in range(3):
+            habit = Habit.objects.create(
+                user=self.user1,
+                name=f"Test Habit {i}",
+                frequency="daily"
+            )
+            habits.append(habit)
+            
+            # Add some completions
+            for j in range(5):  # 5 completions per habit
+                HabitCompletion.objects.create(
+                    habit=habit,
+                    completed_at=timezone.now().date() - timedelta(days=j)
+                )
+
+        # Test query efficiency
+        with CaptureQueriesContext(connection) as context:
+            from social.views import get_habit_analytics
+            analytics = get_habit_analytics(Habit.objects.filter(user=self.user1))
+            # Should only need a few queries to get all the data
+            self.assertLess(len(context.captured_queries), 5)
+
     def tearDown(self):
-        self.patcher.stop() 
+        self.patcher.stop()

@@ -1,14 +1,13 @@
+from datetime import timedelta
 import pytest
 from django.core.exceptions import ValidationError
-from tracker.models import Habit, HabitCompletion, Badge
 from django.contrib.auth import get_user_model
 from django.utils import timezone
-from datetime import timedelta
 from django.db import transaction
 from django.db.utils import IntegrityError
 from django.urls import reverse
 from django.test import TestCase
-from social.models import Friendship
+from tracker.models import Habit, HabitCompletion, Badge
 
 @pytest.mark.django_db
 class TestHabitModel(TestCase):
@@ -60,7 +59,7 @@ class TestHabitModel(TestCase):
             name="Exercise",
             frequency="daily"
         )
-        
+
         # Try to create another habit with the same name for the same user
         with pytest.raises(IntegrityError):
             with transaction.atomic():
@@ -91,7 +90,7 @@ class TestHabitModel(TestCase):
             name="Exercise",
             frequency="daily"
         )
-        
+
         assert habit1.name == habit2.name
         assert habit1.user != habit2.user
 
@@ -167,16 +166,16 @@ class TestHabitModel(TestCase):
             name="Exercise",
             frequency="daily"
         )
-        
+
         # Initially not completed
         assert not habit.is_completed_for_date()
-        
+
         # Toggle to completed
-        assert habit.toggle_completion() == True
+        assert habit.toggle_completion() is True
         assert habit.is_completed_for_date()
-        
+
         # Toggle back to not completed
-        assert habit.toggle_completion() == False
+        assert habit.toggle_completion() is False
         assert not habit.is_completed_for_date()
 
     def test_habit_completion_unique_per_date(self):
@@ -186,11 +185,11 @@ class TestHabitModel(TestCase):
             name="Exercise",
             frequency="daily"
         )
-        
+
         # Complete for today
         habit.toggle_completion()
         assert habit.completions.count() == 1
-        
+
         # Try to complete again for today
         habit.toggle_completion()
         assert habit.completions.count() == 0  # Should be removed
@@ -202,10 +201,10 @@ class TestHabitModel(TestCase):
             name="Exercise",
             frequency="daily"
         )
-        
+
         # Complete for a specific date
         specific_date = timezone.now().date() - timedelta(days=1)
-        assert habit.toggle_completion(specific_date) == True
+        assert habit.toggle_completion(specific_date) is True
         assert habit.is_completed_for_date(specific_date)
         assert not habit.is_completed_for_date()  # Today should still be incomplete
 
@@ -216,12 +215,12 @@ class TestHabitModel(TestCase):
             name="Exercise",
             frequency="daily"
         )
-        
+
         # Create some completions
         habit.toggle_completion()
         habit.toggle_completion(timezone.now().date() - timedelta(days=1))
         assert habit.completions.count() == 2
-        
+
         # Delete habit should delete completions
         habit.delete()
         assert HabitCompletion.objects.count() == 0
@@ -233,12 +232,12 @@ class TestHabitModel(TestCase):
             name="Exercise",
             frequency="daily"
         )
-        
+
         completion = HabitCompletion.objects.create(
             habit=habit,
             completed_at=timezone.now().date()
         )
-        
+
         expected_str = f"{habit.name} completed on {completion.completed_at}"
         assert str(completion) == expected_str
 
@@ -268,7 +267,7 @@ class TestBadgeModel(TestCase):
         Badge.objects.create(user=self.user, badge_type='completions_50')
         Badge.objects.create(user=self.user, badge_type='health_7_day')
         Badge.objects.create(user=self.user, badge_type='health_30_day')
-        
+
         highest_badges = Badge.get_user_highest_badges(self.user)
         self.assertEqual(highest_badges['completions'], 'completions_50')
         self.assertEqual(highest_badges['health'], 'health_30_day')

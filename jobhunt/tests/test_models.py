@@ -1,9 +1,9 @@
+from datetime import timedelta, date
+from unittest import mock
 from django.test import TestCase
 from django.contrib.auth import get_user_model
 from django.utils import timezone
-from datetime import timedelta, date
 from jobhunt.models import Application, StatusChange
-from unittest import mock
 
 class ApplicationModelTests(TestCase):
     def setUp(self):
@@ -52,11 +52,11 @@ class ApplicationModelTests(TestCase):
         """Test that status changes are tracked correctly"""
         # Initially no status changes for wishlist
         self.assertEqual(self.application.status_changes.count(), 0)
-        
+
         # Update to applied
         self.application.status = 'applied'
         self.application.save()
-        
+
         # Should have one status change
         self.assertEqual(self.application.status_changes.count(), 1)
         status_change = self.application.status_changes.first()
@@ -66,10 +66,10 @@ class ApplicationModelTests(TestCase):
         # Test status update
         self.application.status = 'interviewing'
         self.application.save()
-        
+
         status_changes = self.application.status_changes.order_by('changed_at')
         self.assertEqual(status_changes.count(), 2)  # Initial + update
-        
+
         # Get the second (latest) change
         latest_change = status_changes[1]
         self.assertEqual(latest_change.old_status, 'applied')
@@ -85,9 +85,9 @@ class ApplicationModelTests(TestCase):
             self.mock_now.return_value - timedelta(days=20),
             self.mock_now.return_value - timedelta(days=40)
         ]
-        
+
         statuses = ['wishlist', 'applied', 'offered', 'offered', 'rejected']
-        
+
         # Create the test applications (excluding the one created in setUp)
         for date, status in zip(dates, statuses):
             self.mock_now.return_value = date
@@ -139,8 +139,8 @@ class StatusChangeModelTests(TestCase):
             old_status='interviewing',
             new_status='offered'
         )
-        
+
         status_changes = self.application.status_changes.all()
         self.assertTrue(
             status_changes[0].changed_at <= status_changes[1].changed_at
-        ) 
+        )

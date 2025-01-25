@@ -19,11 +19,8 @@ from django.contrib import admin
 from django.urls import include, path
 from allauth.socialaccount.providers.google.views import oauth2_login, oauth2_callback
 from django.shortcuts import redirect
-from django.contrib.auth.decorators import user_passes_test
-from tracker.views import root_redirect
-
 from django.conf import settings
-from django.conf.urls.static import static
+from tracker.views import root_redirect
 
 # Redirect admin login to Google OAuth
 admin.site.login = lambda request, **kwargs: redirect('google_oauth2_login')
@@ -31,7 +28,7 @@ admin.site.login = lambda request, **kwargs: redirect('google_oauth2_login')
 urlpatterns = [
     # Add the root URL pattern
     path('', root_redirect, name='root'),
-    
+
     # Direct Google OAuth URLs
     path('accounts/google/login/', oauth2_login, name='google_oauth2_login'),
     path('accounts/google/login/callback/', oauth2_callback, name='google_oauth2_callback'),
