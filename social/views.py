@@ -17,9 +17,6 @@ from datetime import timedelta, datetime
 from django.http import HttpResponse
 from django.db.models import Count, Q, F, Case, When, IntegerField, DateField
 from django.db.models.functions import Cast
-import logging
-
-logger = logging.getLogger(__name__)
 
 @login_required
 def send_friend_request(request, username):
@@ -194,7 +191,9 @@ def dashboard(request, username):
 
     # Add habit analytics context
     if request.user == viewed_user or (context.get('friendship') and context['friendship'].status == 'accepted'):
-        context.update(get_habit_analytics(viewed_user))
+        # Prefetch completions to reduce queries
+        habits = Habit.objects.filter(user=viewed_user).prefetch_related('completions')
+        context.update(get_habit_analytics(habits))
 
         # Reuse habits from analytics context
         context['habits'] = context['habit_analytics']['habits']
@@ -227,61 +226,42 @@ def dashboard(request, username):
 
     return render(request, 'social/dashboard.html', context)
 
-def get_habit_analytics(user):
+def get_habit_analytics(habits):
     today = timezone.now().date()
     start_of_week = today - timedelta(days=today.weekday())
     start_of_month = today.replace(day=1)
 
-    logger.info(f"Calculating analytics for user {user.username}")
-    logger.info(f"Today: {today}, Start of week: {start_of_week}, Start of month: {start_of_month}")
-
-    # Calculate possible completions based on frequency and age
     habits_data = []
-    for habit in Habit.objects.filter(user=user):
-        days_since_creation = (today - habit.created_at.date()).days + 1
-        
-        logger.info(f"\nHabit: {habit.name}")
-        logger.info(f"Created at: {habit.created_at}")
-        logger.info(f"Days since creation: {days_since_creation}")
-        
-        # Calculate possible completions based on frequency
-        if habit.frequency == 'daily':
-            possible_completions = days_since_creation
-        else:  # weekly
-            possible_completions = ((days_since_creation - 1) // 7) + 1
+    for habit in habits:
+        completions = habit.completions.all()  # Use prefetched data
+        completions_count = len([c for c in completions if c.completed_at <= today])
+        week_count = len([c for c in completions if start_of_week <= c.completed_at <= today])
+        month_count = len([c for c in completions if start_of_month <= c.completed_at <= today])
 
-        logger.info(f"Frequency: {habit.frequency}")
-        logger.info(f"Possible completions: {possible_completions}")
+        # Calculate streak in memory
+        streak = 0
+        check_date = today
+        completion_dates = {c.completed_at for c in completions}
         
-        # Get actual completions
-        completions = habit.completions.filter(
-            completed_at__gte=habit.created_at.date(),
-            completed_at__lte=today
-        )
-        completions_count = completions.count()
-        
-        logger.info(f"Actual completions: {completions_count}")
-        logger.info("Completion dates:")
-        for completion in completions:
-            logger.info(f"  {completion.completed_at}")
-        
+        while check_date in completion_dates:
+            streak += 1
+            check_date -= timedelta(days=1)
+
         habits_data.append({
             'name': habit.name,
             'category': habit.category,
             'frequency': habit.frequency,
             'completions_count': completions_count,
-            'possible_completions': possible_completions,
-            'week_count': completions.filter(completed_at__gte=start_of_week).count(),
-            'month_count': completions.filter(completed_at__gte=start_of_month).count(),
-            'streak_days': habit.current_streak()
+            'possible_completions': habit.get_total_possible_completions(),
+            'week_count': week_count,
+            'month_count': month_count,
+            'streak_days': streak
         })
-        print(f"Debug - Habit: {habit.name}, Frequency: {habit.frequency}, Days Since: {days_since_creation}, Possible: {possible_completions}")
 
-    # Calculate totals
+    # Calculate totals and category stats as before
     total_completions = sum(h['completions_count'] for h in habits_data)
     total_possible = sum(h['possible_completions'] for h in habits_data)
 
-    # Calculate category stats
     by_category = {}
     for habit in habits_data:
         cat = habit['category']
@@ -294,7 +274,7 @@ def get_habit_analytics(user):
 
     category_stats = []
     for category, data in by_category.items():
-        if data['possible'] > 0:  # Only add categories with possible completions
+        if data['possible'] > 0:
             category_stats.append({
                 'category': category,
                 'completed': data['completed'],
@@ -302,13 +282,6 @@ def get_habit_analytics(user):
                 'habit_count': data['count'],
                 'percentage': round(data['completed'] * 100 / data['possible'], 1)
             })
-
-    # Debug prints
-    print("\nView calculation:")
-    print(f"Today: {today}")
-    for habit in habits_data:
-        print(f"Habit: {habit['name']}, Created: {habit.get('created_at')}, Possible: {habit['possible_completions']}")
-    print(f"By category: {by_category}")
 
     return {
         'habit_analytics': {
@@ -320,11 +293,6 @@ def get_habit_analytics(user):
             'this_month_completions': sum(h['month_count'] for h in habits_data),
             'category_stats': category_stats,
             'best_streak': max((h['streak_days'] for h in habits_data), default=0),
-            'habits': Habit.objects.filter(user=user).select_related('user').prefetch_related(
-                Prefetch(
-                    'completions',
-                    queryset=HabitCompletion.objects.filter(completed_at__lte=today)
-                )
-            )
+            'habits': habits
         }
     }

@@ -33,9 +33,6 @@ class BadgeService:
         total_completions = HabitCompletion.objects.filter(
             habit__user=self.user
         ).count()
-
-        logger.info(f"Checking completion badges for {self.user.username}")
-        logger.info(f"Total completions: {total_completions}")
         
         # Check each threshold - order matters to log all eligible badges
         if total_completions >= 100:
@@ -52,13 +49,9 @@ class BadgeService:
             .prefetch_related('completions')
             .select_related('user'))
         
-        logger.info(f"Checking streak badges for {self.user.username}")
-        
         for category in ['health', 'learning', 'productivity']:
             category_habits = [h for h in habits if h.category == category]
             longest_streak = max((habit.current_streak() for habit in category_habits), default=0)
-            
-            logger.info(f"{category} longest streak: {longest_streak}")
             
             # Check each threshold - order matters to log all eligible badges
             if longest_streak >= 30:
@@ -72,6 +65,4 @@ class BadgeService:
             user=self.user,
             badge_type=badge_type
         )
-        if created:
-            logger.info(f"Awarded {badge_type} badge to {self.user.username}")
-        return badge 
+        return badge

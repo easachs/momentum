@@ -89,7 +89,6 @@ class Application(models.Model):
     def get_analytics(cls, user):
         """Get application analytics for dashboard"""
         now = timezone.now()
-        print(f"\nAnalytics calculation time: {now}")
         week_ago = now - timedelta(days=7)
         month_ago = now - timedelta(days=30)
         
@@ -97,12 +96,6 @@ class Application(models.Model):
         week = cls.objects.filter(user=user, created_at__gte=week_ago).count()
         month = cls.objects.filter(user=user, created_at__gte=month_ago).count()
         offers = cls.objects.filter(user=user, status='offered').count()
-        
-        print(f"Queries:")
-        print(f"  total: {cls.objects.filter(user=user)}")
-        print(f"  week: {cls.objects.filter(user=user, created_at__gte=week_ago)}")
-        print(f"  month: {cls.objects.filter(user=user, created_at__gte=month_ago)}")
-        print(f"  offers: {cls.objects.filter(user=user, status='offered')}")
 
         return {
             'total': total,

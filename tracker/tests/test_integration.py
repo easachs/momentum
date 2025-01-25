@@ -118,10 +118,6 @@ class TestHabitIntegration(TestCase):
             )
             self.assertEqual(response.status_code, 200)
             
-            # Log queries for debugging
-            for query in context.captured_queries:
-                print(query['sql'])
-            
             # We expect queries for:
             # 1. User authentication
             # 2. Get habit with prefetched completions
@@ -137,10 +133,6 @@ class TestHabitIntegration(TestCase):
             badge_service = BadgeService(self.user)
             badge_service.check_all_badges()
             
-            # Log badge-related queries
-            for query in context.captured_queries:
-                print(query['sql'])
-            
             # Badge checks should be optimized
             self.assertLess(len(context.captured_queries), 8)
 
@@ -153,10 +145,6 @@ class TestHabitIntegration(TestCase):
                 {'date': self.today.strftime('%Y-%m-%d')}
             )
             self.assertEqual(response.status_code, 302)
-            
-            # Log queries for debugging
-            for query in context.captured_queries:
-                print(query['sql'])
             
             # We expect queries for:
             # 1. User authentication
@@ -172,10 +160,10 @@ class TestHabitIntegration(TestCase):
         with CaptureQueriesContext(connection) as context:
             response = self.client.get(reverse('tracker:habit_list'))
             self.assertEqual(response.status_code, 200)
-            
-            # Log queries for debugging
-            for query in context.captured_queries:
-                print(query['sql'])
+
+            # debug print
+            for index, query in enumerate(context.captured_queries):
+                print("query: ", index, query['sql'])
             
             # We expect queries for:
             # 1. Get user session

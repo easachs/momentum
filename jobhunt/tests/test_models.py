@@ -104,18 +104,6 @@ class ApplicationModelTests(TestCase):
             timezone.datetime.min.time()
         )
 
-        # Debug print
-        print("\nCreated applications:")
-        for app in Application.objects.filter(user=self.user).order_by('created_at'):
-            print(f"  {app.created_at}: {app.status}")
-
-        analytics = Application.get_analytics(self.user)
-        print(f"\nAnalytics results:")
-        print(f"  total: {analytics['total']}")
-        print(f"  week: {analytics['week']}")
-        print(f"  month: {analytics['month']}")
-        print(f"  offers: {analytics['offers']}")
-
 class StatusChangeModelTests(TestCase):
     def setUp(self):
         self.user = get_user_model().objects.create_user(

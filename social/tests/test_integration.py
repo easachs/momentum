@@ -32,9 +32,6 @@ class TestSocialIntegration(TestCase):
         )
         self.client.force_login(self.user1)
         self.today = fixed_date.date()
-        print("\nTest setup:")
-        print(f"  today: {self.today}")
-        print(f"  mocked now: {self.mock_now.return_value}")
 
     def tearDown(self):
         self.patcher.stop()
@@ -327,11 +324,6 @@ class TestSocialIntegration(TestCase):
             
         # Reset mock time back to original for analytics calculation
         self.mock_now.return_value = timezone.datetime.combine(self.today, timezone.datetime.min.time())
-            
-        # Debug print
-        print("\nCreated applications:")
-        for app in Application.objects.filter(user=self.user1).order_by('created_at'):
-            print(f"  {app.created_at}: {app.status}")
         
         # View own dashboard
         self.client.force_login(self.user1)
@@ -438,4 +430,4 @@ class TestPerformance(TestCase):
             )
             
         # Assert reasonable query count (adjust number based on optimizations)
-        self.assertLess(len(context), 25, "Too many queries being executed") 
+        self.assertLess(len(context), 25, "Too many queries being executed")

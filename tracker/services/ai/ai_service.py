@@ -25,7 +25,6 @@ class AIHabitService:
             habit_context = self._gather_habit_stats(habits)
             prompt = self._build_prompt(user.username, habit_context)
             
-            logger.info(f"Sending request to OpenAI for user {user.username}")
             response = self.client.chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=[

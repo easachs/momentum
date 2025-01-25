@@ -254,10 +254,6 @@ class TestSocialViews(TestCase):
         )
         analytics = response.context['habit_analytics']
         
-        # Debug prints
-        print("\nAnalytics data:")
-        print(f"Category stats: {analytics['category_stats']}")
-        
         # Verify calculations
         health_stats = next(
             stat for stat in analytics['category_stats'] 
