@@ -285,7 +285,7 @@ class TestSocialIntegration(TestCase):
             
             analytics_queries = [
                 q for q in context.captured_queries 
-                if 'analytics' in str(q['sql']).lower() or 
+                if 'analytics' in str(q['sql']).lower() or
                    'habit' in str(q['sql']).lower()
             ]
             

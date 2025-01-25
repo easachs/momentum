@@ -9,16 +9,18 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_POST, require_http_methods
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
-from django.db.models import Count, Q, Prefetch, Case, When, Value
+from django.db.models import Count, Q, Case, When, Value
 from django.urls import reverse
 from django.views.decorators.csrf import csrf_protect
 from django.db.models.functions import Cast
-from social.models import Friendship
 
 from tracker.templatetags.markdown.filters import markdown_filter
-from .models import Habit, HabitCompletion, AIHabitSummary
+from .models import Habit
 from .services.ai.ai_service import AIHabitService
 from .services.badges.badge_service import BadgeService
+from .services.analytics.analytics_service import HabitAnalyticsService
+from .services.habits.habit_service import HabitService
+from .services.navigation.navigation_service import NavigationService
 
 logger = logging.getLogger(__name__)
 
@@ -62,146 +64,17 @@ class HabitListView(LoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['viewed_user'] = self.request.user
-        habits = self.get_queryset()
 
-        # Add friendship status
-        if self.request.user != self.request.user:
-            friendship = Friendship.objects.filter(
-                (Q(sender=self.request.user, receiver=self.request.user) |
-                 Q(sender=self.request.user, receiver=self.request.user))
-            ).first()
-
-            context['friendship'] = friendship
-
-        today = timezone.now().date()
-        start_of_week = today - timedelta(days=today.weekday())
-
-        # Add category filter
-        selected_category = self.request.GET.get('category')
-        if selected_category:
-            habits = habits.filter(category=selected_category)
-
-        context['notifications'] = {
-            'incomplete_daily': habits.filter(frequency='daily').filter(completed_today=0).count(),
-            'incomplete_weekly': habits.filter(frequency='weekly').filter(completed_this_week=0).count(),
-        }
-
-        habits_data = [
-            {
-                "name": habit.name,
-                "category": habit.category,
-                "frequency": habit.frequency,
-                "completions_count": habit.total_completions,
-                "possible_completions": habit.get_total_possible_completions(),
-                "week_count": habit.completed_this_week,
-                "month_count": habit.month_count,
-                "streak_days": habit.current_streak(),
-            }
-            for habit in habits
-        ]
-
-        # Calculate totals
-        total_completions = sum(h['completions_count'] for h in habits_data)
-        total_possible = sum(h['possible_completions'] for h in habits_data)
-
-        # Calculate category stats from the same data
-        category_stats = []
-        by_category = {}
-        for habit in habits_data:
-            cat = habit.get('category')
-            if cat not in by_category:
-                by_category[cat] = {'completed': 0, 'possible': 0, 'count': 0, 'streak': 0}
-            by_category[cat]['completed'] += habit['completions_count']
-            by_category[cat]['possible'] += habit['possible_completions']
-            by_category[cat]['count'] += 1
-            by_category[cat]['streak'] = max(by_category[cat]['streak'], habit['streak_days'])
-
-        for category, data in by_category.items():
-            if data['possible'] > 0:  # Only add categories with possible completions
-                category_stats.append({
-                    'category': category,
-                    'completed': data['completed'],
-                    'total': data['possible'],
-                    'habit_count': data['count'],
-                    'percentage': round(
-                        data['completed'] * 100 / data['possible'], 1
-                    )
-                })
-
-        # Get habits for the template
-        context['object_list'] = habits  # Use the same queryset we already have
-
-        context['habit_analytics'] = {
-            'total_habits': len(habits_data),
-            'completion_rate': round(
-                total_completions * 100 / total_possible if total_possible > 0 else 0.0, 1
-            ),
-            'this_week_completions': sum(h['week_count'] for h in habits_data),
-            'this_month_completions': sum(h['month_count'] for h in habits_data),
-            'category_stats': category_stats,
-            'best_streak': max((h['streak_days'] for h in habits_data), default=0),
-            'habits': habits
-        }
-
-        # Complex query building (similar to Rails scopes)
-        habits = habits.annotate(
-            completed_today=Count('completions', filter=Q(completions__completed_at=today)),
-            completed_this_week=Count('completions', filter=Q(completions__completed_at__gte=start_of_week))
-        )
-
-        # View mode handling (similar to Rails params[:view])
+        analytics_service = HabitAnalyticsService(self.request.user)
         view_mode = self.request.GET.get('view', 'frequency')
-        context['view_mode'] = view_mode
+        selected_category = self.request.GET.get('category')
 
-        if view_mode == 'category':
-            # Group by category
-            categorized_habits = {}
-            for category, label in Habit.CATEGORY_CHOICES:
-                categorized_habits[category] = {
-                    'label': label,
-                    'habits': []
-                }
-
-            for habit in habits:
-                habit.streak = habit.current_streak()
-                categorized_habits[habit.category]['habits'].append(habit)
-
-            context['categorized_habits'] = categorized_habits
-            context['has_any_habits'] = any(data['habits'] for data in categorized_habits.values())
-        else:
-            # Original frequency-based grouping
-            daily_habits = []
-            weekly_habits = []
-
-            for habit in habits:
-                habit.streak = habit.current_streak()
-                if habit.frequency == 'daily':
-                    daily_habits.append(habit)
-                else:
-                    weekly_habits.append(habit)
-
-            context['daily_habits'] = daily_habits
-            context['weekly_habits'] = weekly_habits
-
-        # Add the rest of the analytics...
-        context['analytics'] = {
-            'total_completions': total_completions,
-            'category_stats': category_stats,
-            'this_week_completions': sum(h['week_count'] for h in habits_data),
-            'total_possible': total_possible,
-            'completion_rate': round(
-                total_completions * 100 / total_possible if total_possible > 0 else 0.0, 1
+        context.update(
+            analytics_service.get_list_view_data(
+                view_mode=view_mode,
+                selected_category=selected_category
             )
-        }
-
-        # Add category choices for filtering
-        context['habit_categories'] = Habit.CATEGORY_CHOICES
-
-        # Add latest AI summary to context
-        if self.request.user == self.request.user:
-            context['latest_summary'] = AIHabitSummary.objects.filter(
-                user=self.request.user
-            ).first()
+        )
 
         return context
 
@@ -210,70 +83,20 @@ class HabitDetailView(LoginRequiredMixin, DetailView):
     template_name = "tracker/habit_detail.html"
 
     def get_queryset(self):
-        return Habit.objects.filter(user=self.request.user).prefetch_related(
-            Prefetch(
-                'completions',
-                queryset=HabitCompletion.objects.filter(
-                    completed_at__gte=timezone.now().date() - timedelta(days=30)
-                )
-            )
-        )
+        return (Habit.objects
+            .filter(user=self.request.user)
+            .prefetch_related('completions'))
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        today = timezone.now().date()
-        yesterday = today - timedelta(days=1)
-        start_of_week = today - timedelta(days=today.weekday())
         habit = self.get_object()
 
-        # Get all needed completions in one query
-        completions_qs = habit.completions.all()  # Already prefetched
+        # Get analytics data from service
+        analytics_service = HabitAnalyticsService(self.request.user)
+        context.update(analytics_service.get_habit_detail_data(habit))
+        context['habit'] = habit
 
-        # Check for completion based on habit frequency
-        if habit.frequency == 'weekly':
-            today_completed = any(
-                c.completed_at >= start_of_week and c.completed_at <= today
-                for c in completions_qs
-            )
-        else:  # daily
-            today_completed = any(c.completed_at == today for c in completions_qs)
-
-        context.update({
-            'today': today,
-            'yesterday': yesterday,
-            'today_completion': today_completed,
-            'yesterday_completion': any(c.completed_at == yesterday for c in completions_qs),
-            'analytics': {
-                'total_completions': completions_qs.count(),
-                'total_possible': habit.get_total_possible_completions(),
-                'this_week_completions': sum(1 for c in completions_qs if c.completed_at >= start_of_week),
-                'this_month_completions': sum(1 for c in completions_qs if c.completed_at.month == today.month),
-                'current_streak': habit.current_streak(),
-                'longest_streak': habit.longest_streak(),
-            }
-        })
         return context
-
-    def _get_habit_analytics(self, habit):
-        today = timezone.now().date()
-        start_of_week = today - timedelta(days=today.weekday())
-        start_of_month = today.replace(day=1)
-
-        # Calculate total possible completions and actual completions
-        days_since_creation = (today - habit.created_at.date()).days + 1
-        total_possible = days_since_creation if habit.frequency == 'daily' else (days_since_creation + 6) // 7
-
-        completions = habit.completions.filter(completed_at__gte=habit.created_at.date()).count()
-
-        return {
-            'total_completions': completions,
-            'total_possible': total_possible,
-            'completion_rate': (completions / total_possible * 100) if total_possible > 0 else 0,
-            'this_week_completions': habit.completions.filter(completed_at__gte=start_of_week).count(),
-            'this_month_completions': habit.completions.filter(completed_at__gte=start_of_month).count(),
-            'current_streak': habit.current_streak(),
-            'longest_streak': habit.longest_streak(),
-        }
 
 class HabitCreateView(LoginRequiredMixin, CreateView):
     model = Habit
@@ -311,36 +134,24 @@ class HabitDeleteView(LoginRequiredMixin, DeleteView):
 @require_POST
 @login_required
 def toggle_habit_completion(request, pk):
-    # Use select_related to get user in same query
     habit = get_object_or_404(
         Habit.objects.select_related('user'),
         pk=pk, user=request.user
     )
+
+    # Get the date to toggle (today by default)
     date_str = request.POST.get('date')
     if date_str:
-        date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        toggle_date = datetime.strptime(date_str, '%Y-%m-%d').date()
     else:
-        date = timezone.now().date()
+        toggle_date = timezone.localtime(timezone.now()).date()
 
-    # Use filter().exists() instead of first() to reduce data transfer
-    existing_completion = HabitCompletion.objects.filter(
-        habit=habit,
-        completed_at=date
-    ).exists()
+    # Use service to handle completion logic
+    habit_service = HabitService(request.user)
+    was_completed = habit_service.toggle_completion(habit, toggle_date)
 
-    if existing_completion:
-        HabitCompletion.objects.filter(
-            habit=habit,
-            completed_at=date
-        ).delete()
-    else:
-        HabitCompletion.objects.create(
-            habit=habit,
-            completed_at=date
-        )
-
-    # Only check badges if we're completing (not un-completing)
-    if not existing_completion:
+    # Only check badges if we completed (not uncompleted)
+    if was_completed:
         badge_service = BadgeService(request.user)
         badge_service.check_completion_badges()
 
@@ -351,38 +162,24 @@ def toggle_habit_completion(request, pk):
 
 def root_redirect(request):
     """Redirect root URL to either dashboard or login page"""
-    if request.user.is_authenticated:
-        return redirect('social:dashboard', username=request.user.username)
-    return redirect('account_login')
+    nav_service = NavigationService()
+    return redirect(nav_service.get_home_redirect_url(request.user))
 
 @login_required
 @csrf_protect
 @require_http_methods(["POST"])
 def generate_ai_summary(request):
-    try:
-        service = AIHabitService()
-        summary_content = service.generate_habit_summary(request.user)
+    service = AIHabitService()
+    summary, error = service.create_summary(request.user)
 
-        if summary_content.startswith('Error:'):
-            return JsonResponse({
-                'error': summary_content
-            }, status=500)
+    if error:
+        return JsonResponse({'error': error}, status=500)
 
-        summary = AIHabitSummary.objects.create(
-            user=request.user,
-            content=summary_content
-        )
+    # Render the markdown to HTML before sending
+    rendered_content = markdown_filter(summary.content)
 
-        # Render the markdown to HTML before sending
-        rendered_content = markdown_filter(summary_content)
-
-        return JsonResponse({
-            'content': rendered_content,  # This is now HTML
-            'raw_content': summary_content,  # Keep the raw markdown just in case
-            'created_at': summary.created_at.isoformat()
-        })
-    except Exception as e:
-        logger.error(f"Error in generate_ai_summary: {str(e)}")
-        return JsonResponse({
-            'error': 'An unexpected error occurred'
-        }, status=500)
+    return JsonResponse({
+        'content': rendered_content,
+        'raw_content': summary.content,
+        'created_at': summary.created_at.isoformat()
+    })

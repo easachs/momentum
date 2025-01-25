@@ -2,9 +2,9 @@ import os
 import openai
 import logging
 from openai import OpenAI
-from django.conf import settings
 from django.utils import timezone
 from datetime import timedelta
+from tracker.models import AIHabitSummary
 
 logger = logging.getLogger(__name__)
 
@@ -83,3 +83,24 @@ class AIHabitService:
         prompt += "Avoid clarifying questions or using emojis.\n"
         
         return prompt
+
+    def create_summary(self, user):
+        """Create and save a new AI summary"""
+        try:
+            # Generate the summary content
+            summary_content = self.generate_habit_summary(user)
+            
+            if summary_content.startswith('Error:'):
+                return None, summary_content
+            
+            # Create the summary object
+            summary = AIHabitSummary.objects.create(
+                user=user,
+                content=summary_content
+            )
+            
+            return summary, None  # Return summary and no error
+            
+        except Exception as e:
+            logger.error(f"Error in create_summary: {str(e)}")
+            return None, 'An unexpected error occurred'

@@ -286,3 +286,34 @@ class TestHabitIntegration(TestCase):
 
         # Completions should be reduced
         self.assertEqual(completions_after, completions_before - 1)
+
+    def test_habit_detail_completion_rate(self):
+        """Test that habit detail view shows correct completion rate"""
+        # Create a habit with known completion pattern
+        habit = Habit.objects.create(
+            user=self.user,
+            name="Completion Rate Test",
+            frequency="daily",
+            # Set created_at to 5 days ago to match our completion window
+            created_at=timezone.now() - timedelta(days=5)
+        )
+
+        today = timezone.now().date()
+        # Create 3 completions in the last 5 days
+        for i in range(3):
+            HabitCompletion.objects.create(
+                habit=habit,
+                completed_at=today - timedelta(days=i)
+            )
+
+        response = self.client.get(reverse('tracker:habit_detail', kwargs={'pk': habit.pk}))
+        self.assertEqual(response.status_code, 200)
+
+        # Should show 3 completions out of 6 possible days (50%)
+        self.assertContains(response, "50.0%")
+
+        # Verify the context data
+        analytics = response.context['analytics']
+        self.assertEqual(analytics['completion_rate'], 50.0)
+        self.assertEqual(analytics['total_completions'], 3)
+        self.assertEqual(analytics['total_possible'], 6)  # 6 days including today
