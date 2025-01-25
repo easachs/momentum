@@ -1,3 +1,4 @@
+from django.db import models
 from django.urls import reverse_lazy
 from django.views.generic import (CreateView, DeleteView, DetailView, ListView,
                                   UpdateView)
@@ -8,7 +9,7 @@ from django.views.decorators.http import require_POST, require_http_methods
 from django.contrib.auth.decorators import login_required
 from datetime import datetime, timedelta
 from django.utils import timezone
-from django.db.models import Count, Q, Prefetch
+from django.db.models import Count, Q, Prefetch, Subquery, OuterRef, Case, When, Value
 from django.db.models.functions import TruncWeek, TruncMonth, ExtractWeek
 from django.contrib import messages
 from django.urls import reverse
@@ -29,18 +30,42 @@ class HabitListView(LoginRequiredMixin, ListView):
     context_object_name = 'habits'
 
     def get_queryset(self):
-        return Habit.objects.filter(user=self.request.user).prefetch_related(
-            Prefetch(
-                'completions',
-                queryset=HabitCompletion.objects.filter(
-                    completed_at__gte=timezone.now().date() - timedelta(days=7)
+        from django.db.models import Value
+        from django.db.models.functions import Cast
+        
+        today = timezone.now().date()
+        start_of_week = today - timedelta(days=today.weekday())
+        start_of_month = today.replace(day=1)
+
+        return (Habit.objects.filter(user=self.request.user)
+            .select_related('user')
+            .annotate(
+                completed_today=Count('completions', 
+                    filter=Q(completions__completed_at=Cast(Value(today), output_field=models.DateField()))),
+                completed_this_week=Count('completions', 
+                    filter=Q(completions__completed_at__gte=Cast(Value(start_of_week), output_field=models.DateField()))),
+                month_count=Count('completions', 
+                    filter=Q(completions__completed_at__gte=Cast(Value(start_of_month), output_field=models.DateField()))),
+                total_completions=Count('completions'),
+                # Add annotations for notifications
+                needs_completion_daily=Case(
+                    When(frequency='daily', completed_today=0, then=Value(1)),
+                    default=Value(0),
+                    output_field=models.IntegerField(),
+                ),
+                needs_completion_weekly=Case(
+                    When(frequency='weekly', completed_this_week=0, then=Value(1)),
+                    default=Value(0),
+                    output_field=models.IntegerField(),
                 )
-            )
-        )
+            ).prefetch_related(
+                'completions'  # Single prefetch for all completions we need
+            ))
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['viewed_user'] = self.request.user
+        habits = self.get_queryset()
         
         # Add friendship status
         if self.request.user != self.request.user:
@@ -56,65 +81,30 @@ class HabitListView(LoginRequiredMixin, ListView):
         start_of_month = today.replace(day=1)
         thirty_days_ago = today - timedelta(days=30)
         
-        habits = Habit.objects.filter(user=self.request.user)
         
         # Add category filter
         selected_category = self.request.GET.get('category')
         if selected_category:
             habits = habits.filter(category=selected_category)
-        
-        # Get incomplete habits
-        incomplete_daily = habits.filter(
-            frequency='daily',
-            completions__completed_at=today
-        ).count()
-        incomplete_weekly = habits.filter(
-            frequency='weekly',
-            completions__completed_at__gte=start_of_week,
-            completions__completed_at__lte=today
-        ).count()
-        
-        context['notifications'] = {
-            'incomplete_daily': habits.filter(frequency='daily').count() - incomplete_daily,
-            'incomplete_weekly': habits.filter(frequency='weekly').count() - incomplete_weekly,
-        }
-        
-        # Get completion analytics
-        earliest_habit = habits.order_by('created_at').first()
-        earliest_date = earliest_habit.created_at.date() if earliest_habit else today
 
-        # Calculate possible completions based on frequency and age
-        habits_data = []
-        for habit in Habit.objects.filter(user=self.request.user):
-            days_since_creation = (today - habit.created_at.date()).days + 1  # Add 1 to include creation day
-            
-            # Calculate possible completions based on frequency
-            if habit.frequency == 'daily':
-                possible_completions = days_since_creation
-            else:  # weekly
-                possible_completions = ((days_since_creation - 1) // 7) + 1  # Fix weekly calculation
-            
-            # Get actual completions
-            completions = habit.completions.filter(
-                completed_at__gte=habit.created_at.date(),
-                completed_at__lte=today
-            )
-            completions_count = completions.count()
-            
-            # Get weekly and monthly counts
-            week_count = completions.filter(completed_at__gte=start_of_week).count()
-            month_count = completions.filter(completed_at__gte=start_of_month).count()
-            
-            habits_data.append({
-                'name': habit.name,
-                'category': habit.category,
-                'frequency': habit.frequency,
-                'completions_count': completions_count,
-                'possible_completions': possible_completions,
-                'week_count': week_count,
-                'month_count': month_count,
-                'streak_days': habit.current_streak()
-            })
+        context['notifications'] = {
+            'incomplete_daily': habits.filter(frequency='daily').filter(completed_today=0).count(),
+            'incomplete_weekly': habits.filter(frequency='weekly').filter(completed_this_week=0).count(),
+        }
+
+        habits_data = [
+            {
+                "name": habit.name,
+                "category": habit.category,
+                "frequency": habit.frequency,
+                "completions_count": habit.total_completions,
+                "possible_completions": habit.get_total_possible_completions(),
+                "week_count": habit.completed_this_week,
+                "month_count": habit.month_count,
+                "streak_days": habit.current_streak(),
+            }
+            for habit in habits
+        ]
 
         # Calculate totals
         total_completions = sum(h['completions_count'] for h in habits_data)
@@ -145,12 +135,7 @@ class HabitListView(LoginRequiredMixin, ListView):
                 })
 
         # Get habits for the template
-        habits = Habit.objects.filter(user=self.request.user).select_related('user').prefetch_related(
-            Prefetch(
-                'completions',
-                queryset=HabitCompletion.objects.filter(completed_at__lte=today)
-            )
-        )
+        context['object_list'] = habits  # Use the same queryset we already have
 
         context['habit_analytics'] = {
             'total_habits': len(habits_data),
@@ -223,23 +208,6 @@ class HabitListView(LoginRequiredMixin, ListView):
             context['latest_summary'] = AIHabitSummary.objects.filter(
                 user=self.request.user
             ).first()
-
-        # Get habits with their completions for today/this week
-        context['object_list'] = self.get_queryset().prefetch_related(
-            Prefetch(
-                'completions',
-                queryset=HabitCompletion.objects.filter(completed_at=today),
-                to_attr='todays_completions'
-            ),
-            Prefetch(
-                'completions',
-                queryset=HabitCompletion.objects.filter(
-                    completed_at__gte=start_of_week,
-                    completed_at__lte=today
-                ),
-                to_attr='this_week_completions'
-            )
-        )
 
         return context
 

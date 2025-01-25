@@ -171,7 +171,7 @@ class TestSocialViews(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'social/dashboard.html')
         self.assertTrue(response.context['is_own_profile'])
-        self.assertEqual(response.context['profile_user'], self.user1)
+        self.assertEqual(response.context['viewed_user'], self.user1)
 
     def test_dashboard_view_unauthenticated(self):
         """Test that unauthenticated users are redirected to login"""
@@ -199,7 +199,7 @@ class TestSocialViews(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertFalse(response.context['is_own_profile'])
-        self.assertEqual(response.context['profile_user'], other_user)
+        self.assertEqual(response.context['viewed_user'], other_user)
 
     def test_dashboard_habit_analytics(self):
         """Test that dashboard habit analytics are calculated correctly"""

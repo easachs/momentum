@@ -6,7 +6,7 @@ from django.shortcuts import render
 from .models import Friendship
 from tracker.models import Habit, HabitCompletion, Badge, AIHabitSummary
 from django.urls import reverse
-from django.db.models import Q, Count, Sum, Case, When, F, FloatField, IntegerField, Prefetch
+from django.db.models import Q, Count, Sum, Case, When, F, FloatField, IntegerField, Prefetch, Exists, OuterRef
 from django.db.models.functions import Now, Cast, Trunc, ExtractWeek
 from tracker.services.badges.badge_service import BadgeService
 from django.views.generic import TemplateView, DetailView
@@ -170,7 +170,6 @@ def dashboard(request, username):
     User = get_user_model()
     viewed_user = get_object_or_404(User, username=username)
     context = {
-        'profile_user': viewed_user,
         'is_own_profile': request.user == viewed_user,
         'viewed_user': viewed_user
     }
@@ -191,37 +190,29 @@ def dashboard(request, username):
 
     # Add habit analytics context
     if request.user == viewed_user or (context.get('friendship') and context['friendship'].status == 'accepted'):
-        # Prefetch completions to reduce queries
-        habits = Habit.objects.filter(user=viewed_user).prefetch_related('completions')
-        context.update(get_habit_analytics(habits))
-
-        # Reuse habits from analytics context
-        context['habits'] = context['habit_analytics']['habits']
-
         today = timezone.now().date()
         start_of_week = today - timedelta(days=today.weekday())
         start_of_month = today.replace(day=1)
 
-        # Get recent completions with related habits in a single query
-        context['recent_completions'] = HabitCompletion.objects.select_related(
-            'habit', 'habit__user'
-        ).filter(
-            habit__user=viewed_user
-        ).order_by('-completed_at')[:5]
-
-        # Get badges and applications in a single query
-        badges_and_apps = (
-            Badge.objects.select_related('user').filter(user=viewed_user),
-            Application.objects.select_related('user').filter(user=viewed_user).order_by('-updated_at')[:5]
+        # Optimize habit completion queries
+        habits = Habit.objects.filter(user=viewed_user).annotate(
+            completions_count=Count('completions', filter=Q(completions__completed_at__lte=today)),
+            week_count=Count('completions', filter=Q(completions__completed_at__gte=start_of_week, completions__completed_at__lte=today)),
+            month_count=Count('completions', filter=Q(completions__completed_at__gte=start_of_month, completions__completed_at__lte=today))
+        ).prefetch_related(
+            Prefetch('completions', queryset=HabitCompletion.objects.order_by('-completed_at')
+            )
         )
-        context['badges'], context['recent_applications'] = badges_and_apps
 
-        # Get latest AI summary in a single query
-        context['latest_summary'] = AIHabitSummary.objects.select_related('user').filter(
+        # Keep the rest of the context updates unchanged
+        context.update(get_habit_analytics(habits))
+        context['badges'] = Badge.objects.filter(user=viewed_user)
+        context['recent_applications'] = Application.objects.filter(
+            user=viewed_user
+        ).order_by('-updated_at')[:5]
+        context['latest_summary'] = AIHabitSummary.objects.filter(
             user=viewed_user
         ).first()
-
-        # Application analytics
         context['application_analytics'] = Application.get_analytics(viewed_user)
 
     return render(request, 'social/dashboard.html', context)
@@ -233,19 +224,22 @@ def get_habit_analytics(habits):
 
     habits_data = []
     for habit in habits:
-        completions = habit.completions.all()  # Use prefetched data
+        completions = list(habit.completions.all())  # Use prefetched data
         completions_count = len([c for c in completions if c.completed_at <= today])
         week_count = len([c for c in completions if start_of_week <= c.completed_at <= today])
         month_count = len([c for c in completions if start_of_month <= c.completed_at <= today])
 
         # Calculate streak in memory
+        completion_dates = sorted({c.completed_at for c in completions}, reverse=True)
         streak = 0
-        check_date = today
-        completion_dates = {c.completed_at for c in completions}
-        
-        while check_date in completion_dates:
-            streak += 1
-            check_date -= timedelta(days=1)
+
+        if completion_dates and completion_dates[0] == today:
+            streak = 1
+            for i in range(len(completion_dates) - 1):
+                if (completion_dates[i] - completion_dates[i + 1]).days == 1:
+                    streak += 1
+                else:
+                    break
 
         habits_data.append({
             'name': habit.name,

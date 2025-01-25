@@ -8,6 +8,8 @@ from tracker.services.badges import BadgeService
 from django.utils import timezone
 from datetime import timedelta
 
+import traceback
+
 class TestHabitIntegration(TestCase):
     def setUp(self):
         self.user = get_user_model().objects.create_user(
@@ -161,15 +163,9 @@ class TestHabitIntegration(TestCase):
             response = self.client.get(reverse('tracker:habit_list'))
             self.assertEqual(response.status_code, 200)
 
-            # debug print
             for index, query in enumerate(context.captured_queries):
-                print("query: ", index, query['sql'])
-            
-            # We expect queries for:
-            # 1. Get user session
-            # 2. Get habits with prefetched completions
-            # 3. Maybe one for streak calculation
-            self.assertLess(len(context.captured_queries), 5) 
+                print(f"Query {index}: ", query['sql'])
+            self.assertLess(len(context.captured_queries), 5)
 
     def test_analytics_with_mixed_frequencies(self):
         """Test analytics calculations with mix of daily/weekly habits"""

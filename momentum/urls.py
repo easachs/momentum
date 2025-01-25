@@ -22,6 +22,9 @@ from django.shortcuts import redirect
 from django.contrib.auth.decorators import user_passes_test
 from tracker.views import root_redirect
 
+from django.conf import settings
+from django.conf.urls.static import static
+
 # Redirect admin login to Google OAuth
 admin.site.login = lambda request, **kwargs: redirect('google_oauth2_login')
 
@@ -39,3 +42,9 @@ urlpatterns = [
     path('', include('social.urls')),
     path("__reload__/", include("django_browser_reload.urls")),
 ]
+
+if settings.DEBUG:
+    import debug_toolbar
+    urlpatterns = [
+        path('__debug__/', include(debug_toolbar.urls)),
+    ] + urlpatterns
