@@ -52,7 +52,7 @@ class HabitListView(LoginRequiredMixin, ListView):
             context['friendship'] = friendship
         
         today = timezone.now().date()
-        start_of_week = today - timezone.timedelta(days=today.weekday())
+        start_of_week = today - timedelta(days=today.weekday())
         start_of_month = today.replace(day=1)
         thirty_days_ago = today - timedelta(days=30)
         
@@ -70,7 +70,8 @@ class HabitListView(LoginRequiredMixin, ListView):
         ).count()
         incomplete_weekly = habits.filter(
             frequency='weekly',
-            completions__completed_at__gte=start_of_week
+            completions__completed_at__gte=start_of_week,
+            completions__completed_at__lte=today
         ).count()
         
         context['notifications'] = {
@@ -82,39 +83,85 @@ class HabitListView(LoginRequiredMixin, ListView):
         earliest_habit = habits.order_by('created_at').first()
         earliest_date = earliest_habit.created_at.date() if earliest_habit else today
 
-        # Calculate total possible completions and actual completions
-        total_possible = 0
-        total_completions = 0
-        for habit in habits:
-            days_since_creation = (today - habit.created_at.date()).days + 1
+        # Calculate possible completions based on frequency and age
+        habits_data = []
+        for habit in Habit.objects.filter(user=self.request.user):
+            days_since_creation = (today - habit.created_at.date()).days + 1  # Add 1 to include creation day
+            
+            # Calculate possible completions based on frequency
             if habit.frequency == 'daily':
-                total_possible += days_since_creation
+                possible_completions = days_since_creation
             else:  # weekly
-                total_possible += (days_since_creation + 6) // 7  # Round up to nearest week
-
-            # Count actual completions for this habit
-            completions = HabitCompletion.objects.filter(
-                habit=habit,
-                completed_at__gte=habit.created_at.date()
-            ).count()
-            total_completions += completions
-
-        context['analytics'] = {
-            'total_habits': habits.count(),
-            'total_completions': total_completions,
-            'completion_rate': (total_completions / total_possible * 100) if total_possible > 0 else 0,
+                possible_completions = ((days_since_creation - 1) // 7) + 1  # Fix weekly calculation
             
-            # Weekly summary
-            'this_week_completions': HabitCompletion.objects.filter(
-                habit__user=self.request.user,
-                completed_at__gte=start_of_week
-            ).count(),
+            # Get actual completions
+            completions = habit.completions.filter(
+                completed_at__gte=habit.created_at.date(),
+                completed_at__lte=today
+            )
+            completions_count = completions.count()
             
-            # Monthly summary
-            'this_month_completions': HabitCompletion.objects.filter(
-                habit__user=self.request.user,
-                completed_at__gte=start_of_month
-            ).count(),
+            # Get weekly and monthly counts
+            week_count = completions.filter(completed_at__gte=start_of_week).count()
+            month_count = completions.filter(completed_at__gte=start_of_month).count()
+            
+            habits_data.append({
+                'name': habit.name,
+                'category': habit.category,
+                'frequency': habit.frequency,
+                'completions_count': completions_count,
+                'possible_completions': possible_completions,
+                'week_count': week_count,
+                'month_count': month_count,
+                'streak_days': habit.current_streak()
+            })
+
+        # Calculate totals
+        total_completions = sum(h['completions_count'] for h in habits_data)
+        total_possible = sum(h['possible_completions'] for h in habits_data)
+
+        # Calculate category stats from the same data
+        category_stats = []
+        by_category = {}
+        for habit in habits_data:
+            cat = habit.get('category')
+            if cat not in by_category:
+                by_category[cat] = {'completed': 0, 'possible': 0, 'count': 0, 'streak': 0}
+            by_category[cat]['completed'] += habit['completions_count']
+            by_category[cat]['possible'] += habit['possible_completions']
+            by_category[cat]['count'] += 1
+            by_category[cat]['streak'] = max(by_category[cat]['streak'], habit['streak_days'])
+
+        for category, data in by_category.items():
+            if data['possible'] > 0:  # Only add categories with possible completions
+                category_stats.append({
+                    'category': category,
+                    'completed': data['completed'],
+                    'total': data['possible'],
+                    'habit_count': data['count'],
+                    'percentage': round(
+                        data['completed'] * 100 / data['possible'], 1
+                    )
+                })
+
+        # Get habits for the template
+        habits = Habit.objects.filter(user=self.request.user).select_related('user').prefetch_related(
+            Prefetch(
+                'completions',
+                queryset=HabitCompletion.objects.filter(completed_at__lte=today)
+            )
+        )
+
+        context['habit_analytics'] = {
+            'total_habits': len(habits_data),
+            'completion_rate': round(
+                total_completions * 100 / total_possible if total_possible > 0 else 0.0, 1
+            ),
+            'this_week_completions': sum(h['week_count'] for h in habits_data),
+            'this_month_completions': sum(h['month_count'] for h in habits_data),
+            'category_stats': category_stats,
+            'best_streak': max((h['streak_days'] for h in habits_data), default=0),
+            'habits': habits
         }
 
         # Complex query building (similar to Rails scopes)
@@ -157,47 +204,17 @@ class HabitListView(LoginRequiredMixin, ListView):
             context['daily_habits'] = daily_habits
             context['weekly_habits'] = weekly_habits
         
-        # First, calculate total possible completions and actual completions per category
-        category_stats = {}
-        for category, _ in Habit.CATEGORY_CHOICES:
-            category_stats[category] = {
-                'total': 0,
-                'completed': HabitCompletion.objects.filter(
-                    habit__user=self.request.user,
-                    habit__category=category
-                ).count()
-            }
-            
-            # Calculate total possible completions for this category
-            for habit in habits.filter(category=category):
-                days_since_creation = (today - habit.created_at.date()).days + 1
-                if habit.frequency == 'daily':
-                    category_stats[category]['total'] += days_since_creation
-                else:  # weekly
-                    category_stats[category]['total'] += (days_since_creation + 6) // 7
-
-        # Add to analytics context
-        context['analytics']['category_stats'] = [
-            {
-                'category': category,
-                'total': stats['total'],
-                'completed': stats['completed']
-            }
-            for category, stats in category_stats.items()
-        ]
-        
         # Add the rest of the analytics...
-        context['analytics'].update({
-            'daily_stats': HabitCompletion.objects.filter(
-                habit__user=self.request.user,
-                completed_at__gte=thirty_days_ago
-            ).annotate(
-                date=TruncWeek('completed_at')
-            ).values('date').annotate(
-                count=Count('id')
-            ).order_by('date'),
-        })
-        
+        context['analytics'] = {
+            'total_completions': total_completions,
+            'category_stats': category_stats,
+            'this_week_completions': sum(h['week_count'] for h in habits_data),
+            'total_possible': total_possible,
+            'completion_rate': round(
+                total_completions * 100 / total_possible if total_possible > 0 else 0.0, 1
+            )
+        }
+
         # Add category choices for filtering
         context['habit_categories'] = Habit.CATEGORY_CHOICES
 
@@ -206,6 +223,23 @@ class HabitListView(LoginRequiredMixin, ListView):
             context['latest_summary'] = AIHabitSummary.objects.filter(
                 user=self.request.user
             ).first()
+
+        # Get habits with their completions for today/this week
+        context['object_list'] = self.get_queryset().prefetch_related(
+            Prefetch(
+                'completions',
+                queryset=HabitCompletion.objects.filter(completed_at=today),
+                to_attr='todays_completions'
+            ),
+            Prefetch(
+                'completions',
+                queryset=HabitCompletion.objects.filter(
+                    completed_at__gte=start_of_week,
+                    completed_at__lte=today
+                ),
+                to_attr='this_week_completions'
+            )
+        )
 
         return context
 
@@ -234,25 +268,29 @@ class HabitDetailView(LoginRequiredMixin, DetailView):
         # Get all needed completions in one query
         completions_qs = habit.completions.all()  # Already prefetched
         
+        # Check for completion based on habit frequency
+        if habit.frequency == 'weekly':
+            today_completed = any(
+                c.completed_at >= start_of_week and c.completed_at <= today 
+                for c in completions_qs
+            )
+        else:  # daily
+            today_completed = any(c.completed_at == today for c in completions_qs)
+
         context.update({
             'today': today,
             'yesterday': yesterday,
-            'today_completion': any(c.completed_at == today for c in completions_qs),
+            'today_completion': today_completed,
             'yesterday_completion': any(c.completed_at == yesterday for c in completions_qs),
             'analytics': {
                 'total_completions': completions_qs.count(),
                 'total_possible': habit.get_total_possible_completions(),
-                'this_week_completions': sum(1 for c in completions_qs if c.completed_at >= today - timedelta(days=today.weekday())),
+                'this_week_completions': sum(1 for c in completions_qs if c.completed_at >= start_of_week),
                 'this_month_completions': sum(1 for c in completions_qs if c.completed_at.month == today.month),
                 'current_streak': habit.current_streak(),
                 'longest_streak': habit.longest_streak(),
             }
         })
-        if habit.frequency == 'weekly':
-            context['this_week_completion'] = habit.completions.filter(
-                completed_at__gte=start_of_week,
-                completed_at__lte=today
-            ).exists()
         return context
 
     def _get_habit_analytics(self, habit):
@@ -327,54 +365,36 @@ def toggle_habit_completion(request, pk):
         date = timezone.now().date()
     today = timezone.now().date()
     
-    # For weekly habits, enforce strict rules
+    start_of_week = date - timedelta(days=date.weekday())
+    
     if habit.frequency == 'weekly':
-        # Calculate start of the selected week and current week
-        selected_week_start = date - timedelta(days=date.weekday())
-        current_week_start = today - timedelta(days=today.weekday())
-        
-        # Get all needed data in one query
-        existing_completion = habit.completions.filter(
-            completed_at__gte=current_week_start,
-            completed_at__lte=today
-        ).select_related('habit').first()
+        # For weekly habits, find any completion this week
+        existing_completion = HabitCompletion.objects.filter(
+            habit=habit,
+            completed_at__gte=start_of_week,
+            completed_at__lte=date
+        ).first()
         
         if existing_completion:
-            # If toggling same day, delete it
-            if existing_completion.completed_at == date:
-                existing_completion.delete()
-            else:
-                return JsonResponse({
-                    'error': 'This habit has already been completed this week'
-                }, status=400)
+            # If completed this week, delete the completion
+            existing_completion.delete()
         else:
-            # Create new completion for today only
-            HabitCompletion.objects.create(
-                habit=habit,
-                completed_at=today
-            )
-        # Check badges after modifying completions
-        badge_service = BadgeService(request.user)
-        badge_service.check_completion_badges()
-        
-        referer = request.META.get('HTTP_REFERER')
-        if referer:
-            return redirect(referer)
-        return redirect('tracker:habit_detail', pk=pk)
-
-    # For daily habits, continue with existing logic
-    completion = HabitCompletion.objects.filter(
-        habit=habit, 
-        completed_at=date
-    ).first()
-    
-    if completion:
-        completion.delete()
+            # If not completed this week, create a completion
+            HabitCompletion.objects.create(habit=habit, completed_at=date)
     else:
-        HabitCompletion.objects.create(
+        # Handle daily habits
+        existing_completion = HabitCompletion.objects.filter(
             habit=habit,
             completed_at=date
-        )
+        ).first()
+
+        if existing_completion:
+            # If toggling same day, delete it
+            existing_completion.delete()
+        else:
+            # Create new completion
+            HabitCompletion.objects.create(habit=habit, completed_at=date)
+    
     # Check badges after modifying completions
     badge_service = BadgeService(request.user)
     badge_service.check_completion_badges()

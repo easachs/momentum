@@ -273,14 +273,14 @@ class TestHabitIntegration(TestCase):
         response = self.client.get(
             reverse('social:dashboard', kwargs={'username': self.user.username})
         )
-        analytics = response.context['analytics']
+        analytics = response.context['habit_analytics']
         
         self.assertEqual(analytics['best_streak'], 5)
         # Just verify the best streak since category stats might be structured differently
         self.assertEqual(analytics['best_streak'], 5)
 
     def test_analytics_with_deleted_habits(self):
-        """Test analytics handle deleted habits correctly"""
+        """Test habit analytics handle deleted habits correctly"""
         habit = Habit.objects.create(
             user=self.user,
             name="To Delete Habit",

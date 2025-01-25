@@ -57,7 +57,7 @@ class Habit(models.Model):
     )
 
     # auto_now_add is like t.timestamps in Rails (for created_at)
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(default=timezone.now)
 
     class Meta:
         # Compound unique constraint - Rails: validates :name, uniqueness: { scope: :user_id }
@@ -73,20 +73,46 @@ class Habit(models.Model):
 
     # Instance methods - similar to Ruby instance methods
     def is_completed_for_date(self, date=None):
-        # Default parameter handling (Ruby: date = Time.current.to_date)
         if date is None:
             date = timezone.now().date()
-        # exists? in Rails
-        return self.completions.filter(completed_at=date).exists()
+        
+        if self.frequency == 'weekly':
+            # For weekly habits, check if completed any time this week
+            start_of_week = date - timedelta(days=date.weekday())
+            return self.completions.filter(
+                completed_at__gte=start_of_week,
+                completed_at__lte=date
+            ).exists()
+        else:
+            # For daily habits, check just this date
+            return self.completions.filter(completed_at=date).exists()
 
     def toggle_completion(self, date=None):
-        # find_or_create_by in Rails
         if date is None:
             date = timezone.now().date()
-        completion, created = self.completions.get_or_create(completed_at=date)
-        if not created:
-            completion.delete()
-        return created
+        
+        if self.frequency == 'weekly':
+            # For weekly habits, find any completion this week
+            start_of_week = date - timedelta(days=date.weekday())
+            completion = self.completions.filter(
+                completed_at__gte=start_of_week,
+                completed_at__lte=date
+            ).first()
+            
+            if completion:
+                # If already completed this week, remove the completion
+                completion.delete()
+                return False
+            else:
+                # If not completed this week, create a completion
+                self.completions.create(completed_at=date)
+                return True
+        else:
+            # Handle daily habits as before
+            completion, created = self.completions.get_or_create(completed_at=date)
+            if not created:
+                completion.delete()
+            return created
 
     def current_streak(self):
         # Complex business logic method

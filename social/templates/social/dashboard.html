@@ -8,7 +8,8 @@
 
     <!-- Only show content if user is viewing their own profile or is friends -->
     {% if user == viewed_user or friendship.status == 'accepted' %}
-        {% include 'social/partials/dashboard/analytics.html' %}
+        {% include 'social/partials/dashboard/habit_analytics.html' %}
+        {% include 'social/partials/dashboard/application_analytics.html' %}
         {% include 'social/partials/dashboard/ai_insights.html' %}
         
         <!-- Badges Section -->

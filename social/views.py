@@ -15,6 +15,11 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.utils import timezone
 from datetime import timedelta, datetime
 from django.http import HttpResponse
+from django.db.models import Count, Q, F, Case, When, IntegerField, DateField
+from django.db.models.functions import Cast
+import logging
+
+logger = logging.getLogger(__name__)
 
 @login_required
 def send_friend_request(request, username):
@@ -187,13 +192,12 @@ def dashboard(request, username):
             status='pending'
         )
 
-    # Add analytics and data if user has permission
+    # Add habit analytics context
     if request.user == viewed_user or (context.get('friendship') and context['friendship'].status == 'accepted'):
-        # Add analytics context
-        context.update(_get_analytics_context(viewed_user))
+        context.update(get_habit_analytics(viewed_user))
 
         # Reuse habits from analytics context
-        context['habits'] = context['analytics']['habits']
+        context['habits'] = context['habit_analytics']['habits']
 
         today = timezone.now().date()
         start_of_week = today - timedelta(days=today.weekday())
@@ -218,111 +222,77 @@ def dashboard(request, username):
             user=viewed_user
         ).first()
 
+        # Application analytics
+        context['application_analytics'] = Application.get_analytics(viewed_user)
+
     return render(request, 'social/dashboard.html', context)
 
-def _get_analytics_context(user):
+def get_habit_analytics(user):
     today = timezone.now().date()
     start_of_week = today - timedelta(days=today.weekday())
     start_of_month = today.replace(day=1)
-    print(f"\nAnalytics calculation:")
-    print(f"  today: {today}")
-    print(f"  timezone.now(): {timezone.now()}")
 
-    # Get all data in a single query
-    habits_data = Habit.objects.filter(user=user).values(
-        'id', 'frequency', 'category', 'created_at', 'user'
-    ).annotate(
-        completions_count=Case(
-            When(
-                frequency='daily',
-                then=Count(
-                    'completions__completed_at',
-                    filter=Q(completions__completed_at=today),
-                    distinct=True
-                )
-            ),
-            When(
-                frequency='weekly',
-                then=Count(
-                    'completions',
-                    filter=Q(
-                        completions__completed_at__gte=start_of_week,
-                        completions__completed_at__lte=today
-                    ),
-                    distinct=True
-                )
-            ),
-            default=0,
-            output_field=IntegerField()
-        ),
-        week_count=Count(
-            'completions__completed_at',  # Remove Trunc since we don't need it
-            filter=Q(
-                completions__completed_at__gte=start_of_week,
-                completions__completed_at__lte=today
-            ),
-            distinct=True
-        ),
-        month_count=Count(
-            'completions__completed_at',  # Remove Trunc since we don't need it
-            filter=Q(
-                completions__completed_at__gte=start_of_month,
-                completions__completed_at__lte=today
-            ),
-            distinct=True
-        ),
-        streak_days=Count(
-            'completions__completed_at',
-            filter=Q(completions__completed_at__lte=today),
-            distinct=True
-        )
-    )
+    logger.info(f"Calculating analytics for user {user.username}")
+    logger.info(f"Today: {today}, Start of week: {start_of_week}, Start of month: {start_of_month}")
 
-    # Calculate days since creation in Python instead of in the database
-    for habit in habits_data:
-        created_date = habit['created_at'].date()
+    # Calculate possible completions based on frequency and age
+    habits_data = []
+    for habit in Habit.objects.filter(user=user):
+        days_since_creation = (today - habit.created_at.date()).days + 1
         
-        if habit['frequency'] == 'daily':
-            # For daily habits, only count today
-            habit['days_since_creation'] = 1
-            habit['possible_completions'] = 1
-        else:
-            # For weekly habits, only count this week
-            habit['days_since_creation'] = 1
-            habit['possible_completions'] = 1
+        logger.info(f"\nHabit: {habit.name}")
+        logger.info(f"Created at: {habit.created_at}")
+        logger.info(f"Days since creation: {days_since_creation}")
+        
+        # Calculate possible completions based on frequency
+        if habit.frequency == 'daily':
+            possible_completions = days_since_creation
+        else:  # weekly
+            possible_completions = ((days_since_creation - 1) // 7) + 1
 
-        print(f"  Final habit data:")
-        print(f"  frequency: {habit['frequency']}")
-        print(f"  created_date: {created_date}")
-        print(f"  days_since_creation: {habit['days_since_creation']}")
-        print(f"  possible_completions: {habit['possible_completions']}")
-        print(f"  actual_completions: {habit['completions_count']}")
+        logger.info(f"Frequency: {habit.frequency}")
+        logger.info(f"Possible completions: {possible_completions}")
+        
+        # Get actual completions
+        completions = habit.completions.filter(
+            completed_at__gte=habit.created_at.date(),
+            completed_at__lte=today
+        )
+        completions_count = completions.count()
+        
+        logger.info(f"Actual completions: {completions_count}")
+        logger.info("Completion dates:")
+        for completion in completions:
+            logger.info(f"  {completion.completed_at}")
+        
+        habits_data.append({
+            'name': habit.name,
+            'category': habit.category,
+            'frequency': habit.frequency,
+            'completions_count': completions_count,
+            'possible_completions': possible_completions,
+            'week_count': completions.filter(completed_at__gte=start_of_week).count(),
+            'month_count': completions.filter(completed_at__gte=start_of_month).count(),
+            'streak_days': habit.current_streak()
+        })
+        print(f"Debug - Habit: {habit.name}, Frequency: {habit.frequency}, Days Since: {days_since_creation}, Possible: {possible_completions}")
 
-    # Calculate totals from the annotated data
+    # Calculate totals
     total_completions = sum(h['completions_count'] for h in habits_data)
     total_possible = sum(h['possible_completions'] for h in habits_data)
 
-    print(f"\nTotals:")
-    print(f"  total_completions: {total_completions}")
-    print(f"  total_possible: {total_possible}")
-
-    # Calculate completion rate
-    completion_rate = (total_completions / total_possible * 100) if total_possible > 0 else 0
-    print(f"  completion_rate: {completion_rate}")
-
-    # Calculate category stats from the same data
-    category_stats = []
+    # Calculate category stats
     by_category = {}
     for habit in habits_data:
         cat = habit['category']
         if cat not in by_category:
             by_category[cat] = {'completed': 0, 'possible': 0, 'count': 0, 'streak': 0}
         by_category[cat]['completed'] += habit['completions_count']
-        # Use the same possible completions we calculated earlier
         by_category[cat]['possible'] += habit['possible_completions']
         by_category[cat]['count'] += 1
         by_category[cat]['streak'] = max(by_category[cat]['streak'], habit['streak_days'])
 
+    category_stats = []
     for category, data in by_category.items():
         if data['possible'] > 0:  # Only add categories with possible completions
             category_stats.append({
@@ -330,21 +300,18 @@ def _get_analytics_context(user):
                 'completed': data['completed'],
                 'total': data['possible'],
                 'habit_count': data['count'],
-                'percentage': round(
-                    data['completed'] * 100 / data['possible'], 1
-                )
+                'percentage': round(data['completed'] * 100 / data['possible'], 1)
             })
 
-    # Get habits for the template
-    habits = Habit.objects.filter(user=user).select_related('user').prefetch_related(
-        Prefetch(
-            'completions',
-            queryset=HabitCompletion.objects.filter(completed_at__lte=today)
-        )
-    )
+    # Debug prints
+    print("\nView calculation:")
+    print(f"Today: {today}")
+    for habit in habits_data:
+        print(f"Habit: {habit['name']}, Created: {habit.get('created_at')}, Possible: {habit['possible_completions']}")
+    print(f"By category: {by_category}")
 
     return {
-        'analytics': {
+        'habit_analytics': {
             'total_habits': len(habits_data),
             'completion_rate': round(
                 total_completions * 100 / total_possible if total_possible > 0 else 0.0, 1
@@ -353,6 +320,11 @@ def _get_analytics_context(user):
             'this_month_completions': sum(h['month_count'] for h in habits_data),
             'category_stats': category_stats,
             'best_streak': max((h['streak_days'] for h in habits_data), default=0),
-            'habits': habits
+            'habits': Habit.objects.filter(user=user).select_related('user').prefetch_related(
+                Prefetch(
+                    'completions',
+                    queryset=HabitCompletion.objects.filter(completed_at__lte=today)
+                )
+            )
         }
     }

@@ -36,3 +36,5 @@ media/
 *.swp
 *.swo
 .coverage
+
+context.md

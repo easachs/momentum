@@ -58,34 +58,58 @@ class Application(models.Model):
         return f"{self.title} at {self.company}"
 
     def save(self, *args, **kwargs):
-        if self.pk:  # If this is an update
-            old_instance = Application.objects.get(pk=self.pk)
-            if old_instance.status != self.status:
-                StatusChange.objects.create(
-                    application=self,
-                    old_status=old_instance.status,
-                    new_status=self.status
-                )
-        elif self.status != 'wishlist':  # If this is a new instance not starting with wishlist
-            # We'll create a status change after saving
-            should_create_initial = True
-        else:
-            should_create_initial = False
+        # Check if this is a new instance
+        is_new = self._state.adding
         
+        # Get the old status if this is an existing instance
+        if not is_new:
+            old_status = Application.objects.get(pk=self.pk).status
+        else:
+            old_status = 'wishlist'  # For new instances, old status is wishlist
+        
+        # Save the application
         super().save(*args, **kwargs)
         
-        # Create initial status change if needed
-        if not self.pk and should_create_initial:
-            StatusChange.objects.create(
-                application=self,
-                old_status=None,
-                new_status=self.status
-            )
+        # Create status change record if status changed
+        if old_status != self.status:
+            # Only skip status change for new wishlist applications
+            if not (is_new and self.status == 'wishlist'):
+                StatusChange.objects.create(
+                    application=self,
+                    old_status=old_status,
+                    new_status=self.status
+                )
 
     def is_due_soon(self):
         if not self.due:
             return False
         return self.due - timezone.now().date() <= timedelta(days=7)
+
+    @classmethod
+    def get_analytics(cls, user):
+        """Get application analytics for dashboard"""
+        now = timezone.now()
+        print(f"\nAnalytics calculation time: {now}")
+        week_ago = now - timedelta(days=7)
+        month_ago = now - timedelta(days=30)
+        
+        total = cls.objects.filter(user=user).count()  # Count ALL applications
+        week = cls.objects.filter(user=user, created_at__gte=week_ago).count()
+        month = cls.objects.filter(user=user, created_at__gte=month_ago).count()
+        offers = cls.objects.filter(user=user, status='offered').count()
+        
+        print(f"Queries:")
+        print(f"  total: {cls.objects.filter(user=user)}")
+        print(f"  week: {cls.objects.filter(user=user, created_at__gte=week_ago)}")
+        print(f"  month: {cls.objects.filter(user=user, created_at__gte=month_ago)}")
+        print(f"  offers: {cls.objects.filter(user=user, status='offered')}")
+
+        return {
+            'total': total,
+            'week': week,
+            'month': month,
+            'offers': offers
+        }
 
 class StatusChange(models.Model):
     application = models.ForeignKey(

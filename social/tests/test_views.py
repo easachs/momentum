@@ -5,6 +5,7 @@ from social.models import Friendship
 from tracker.models import Habit, HabitCompletion
 from django.utils import timezone
 from datetime import timedelta
+from unittest import mock
 
 class TestSocialViews(TestCase):
     def setUp(self):
@@ -24,6 +25,12 @@ class TestSocialViews(TestCase):
             password='testpass123'
         )
         self.client.force_login(self.user1)
+
+        # Set up timezone mock
+        fixed_date = timezone.datetime(2024, 1, 1).astimezone(timezone.get_current_timezone())
+        self.patcher = mock.patch('django.utils.timezone.now')
+        self.mock_now = self.patcher.start()
+        self.mock_now.return_value = fixed_date
 
     def test_send_friend_request(self):
         response = self.client.get(
@@ -192,4 +199,79 @@ class TestSocialViews(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertFalse(response.context['is_own_profile'])
-        self.assertEqual(response.context['profile_user'], other_user) 
+        self.assertEqual(response.context['profile_user'], other_user)
+
+    def test_dashboard_habit_analytics(self):
+        """Test that dashboard habit analytics are calculated correctly"""
+        # Set a fixed time for the entire test
+        test_now = timezone.datetime(2024, 1, 3, 12, 0).astimezone(timezone.get_current_timezone())
+        self.mock_now.return_value = test_now
+        
+        one_day_ago = test_now - timedelta(days=1)
+        
+        # Create habits with explicit created_at times
+        health_habits = [
+            Habit.objects.create(
+                user=self.user1,
+                name=f"Daily Health {i}",
+                category="health",
+                frequency="daily",
+                created_at=one_day_ago
+            ) for i in range(4)
+        ]
+        
+        weekly_habit = Habit.objects.create(
+            user=self.user1,
+            name="Weekly Health",
+            category="health",
+            frequency="weekly",
+            created_at=one_day_ago
+        )
+        
+        # Create completions with explicit completed_at times
+        for habit in health_habits[:2]:
+            for days_ago in [0, 1]:
+                HabitCompletion.objects.create(
+                    habit=habit,
+                    completed_at=test_now - timedelta(days=days_ago)
+                )
+        
+        # Third daily habit - complete only today
+        HabitCompletion.objects.create(
+            habit=health_habits[2],
+            completed_at=test_now
+        )
+        
+        # Weekly habit - complete once
+        HabitCompletion.objects.create(
+            habit=weekly_habit,
+            completed_at=test_now
+        )
+        
+        # Get analytics through the dashboard view
+        response = self.client.get(
+            reverse('social:dashboard', kwargs={'username': self.user1.username})
+        )
+        analytics = response.context['habit_analytics']
+        
+        # Debug prints
+        print("\nAnalytics data:")
+        print(f"Category stats: {analytics['category_stats']}")
+        
+        # Verify calculations
+        health_stats = next(
+            stat for stat in analytics['category_stats'] 
+            if stat['category'] == 'health'
+        )
+        
+        # Expected values:
+        # - Total possible: 8 daily (4 habits × 2 days) + 1 weekly = 9
+        # - Total completed: 4 (two habits × 2 days) + 1 (one habit × 1 day) + 1 weekly = 6
+        # - Completion rate: 6/9 ≈ 67%
+        
+        self.assertEqual(health_stats['total'], 9)  # Total possible
+        self.assertEqual(health_stats['completed'], 6)  # Actual completions
+        self.assertAlmostEqual(health_stats['percentage'], 66.7, places=1)  # Completion rate 
+
+    def tearDown(self):
+        self.patcher.stop() 

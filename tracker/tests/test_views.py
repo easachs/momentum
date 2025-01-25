@@ -242,5 +242,76 @@ class TestHabitViews(TestCase):
         
         response = self.client.get(reverse('social:dashboard', kwargs={'username': self.user.username}))
         self.assertEqual(response.status_code, 200)
-        self.assertTrue('analytics' in response.context)
-        self.assertEqual(response.context['analytics']['total_habits'], 2) 
+        self.assertTrue('habit_analytics' in response.context)
+        self.assertEqual(response.context['habit_analytics']['total_habits'], 2)
+
+    def test_habit_analytics_calculation(self):
+        """Test that habit analytics are calculated correctly"""
+        today = timezone.now().date()
+        one_day_ago = today - timedelta(days=1)
+        
+        # Create test habits with known completion patterns
+        health_habits = [
+            Habit.objects.create(
+                user=self.user,
+                name=f"Daily Health {i}",
+                category="health",
+                frequency="daily",
+                created_at=one_day_ago
+            ) for i in range(4)
+        ]
+        
+        weekly_habit = Habit.objects.create(
+            user=self.user,
+            name="Weekly Health",
+            category="health",
+            frequency="weekly",
+            created_at=one_day_ago
+        )
+        
+        # Create completions matching the scenario:
+        # - Two daily habits completed both days (4 completions)
+        # - One daily habit completed once (1 completion)
+        # - One daily habit not completed
+        # - Weekly habit completed once (1 completion)
+        
+        # First two daily habits - complete both days
+        for habit in health_habits[:2]:
+            for days_ago in [0, 1]:
+                HabitCompletion.objects.create(
+                    habit=habit,
+                    completed_at=today - timedelta(days=days_ago)
+                )
+        
+        # Third daily habit - complete only today
+        HabitCompletion.objects.create(
+            habit=health_habits[2],
+            completed_at=today
+        )
+        
+        # Fourth daily habit - no completions
+        
+        # Weekly habit - complete once
+        HabitCompletion.objects.create(
+            habit=weekly_habit,
+            completed_at=today
+        )
+        
+        # Get analytics through the view
+        response = self.client.get(reverse('tracker:habit_list'))
+        analytics = response.context['habit_analytics']
+        
+        # Verify calculations
+        health_stats = next(
+            stat for stat in analytics['category_stats'] 
+            if stat['category'] == 'health'
+        )
+        
+        # Expected values:
+        # - Total possible: 9 daily (4 habits × 2 days + 1 from setup) + 1 weekly = 10
+        # - Total completed: 4 (two habits × 2 days) + 1 (one habit × 1 day) + 1 weekly = 6
+        # - Completion rate: 6/10 ≈ 60%
+        
+        self.assertEqual(health_stats['total'], 10)  # Total possible
+        self.assertEqual(health_stats['completed'], 6)  # Actual completions
+        self.assertAlmostEqual(health_stats['percentage'], 60.0, places=1)  # Completion rate
