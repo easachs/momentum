@@ -10,7 +10,7 @@ class TestTrackerToggleCompletion(TestCase):
     """Tests for the Tracker Toggle Completion View"""
 
     def setUp(self):
-        self.today = timezone.now().date()
+        self.today = timezone.localtime(timezone.now()).date()
         self.user = get_user_model().objects.create_user(
             username="testuser", password="testpass123"
         )
@@ -21,7 +21,7 @@ class TestTrackerToggleCompletion(TestCase):
 
     def test_toggle_completion_view(self):
         """Test that toggle_completion view works"""
-        today = timezone.now().date()
+        today = timezone.localtime(timezone.now()).date()
         response = self.client.post(
             reverse("tracker:toggle_completion", kwargs={"pk": self.habit.pk}),
             {"date": today.strftime("%Y-%m-%d")},

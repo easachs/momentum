@@ -37,11 +37,15 @@ class ApplicationModelTests(TestCase):
 
     def test_is_due_soon(self):
         # Test not due soon
-        self.application.due = timezone.now().date() + timedelta(days=10)
+        self.application.due = timezone.localtime(timezone.now()).date() + timedelta(
+            days=10
+        )
         self.assertFalse(self.application.is_due_soon())
 
         # Test due soon
-        self.application.due = timezone.now().date() + timedelta(days=5)
+        self.application.due = timezone.localtime(timezone.now()).date() + timedelta(
+            days=5
+        )
         self.assertTrue(self.application.is_due_soon())
 
         # Test no due date

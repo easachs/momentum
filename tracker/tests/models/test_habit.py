@@ -148,7 +148,7 @@ class TestHabitModel(TestCase):
         )
 
         # Get the start of the current week
-        today = timezone.now().date()
+        today = timezone.localtime(timezone.now()).date()
         start_of_week = today - timedelta(days=today.weekday())
 
         # Create two completions in the current week
@@ -180,7 +180,7 @@ class TestHabitModel(TestCase):
         habit = Habit.objects.create(user=user, name="Exercise", frequency="daily")
 
         # Complete for a specific date
-        specific_date = timezone.now().date() - timedelta(days=1)
+        specific_date = timezone.localtime(timezone.now()).date() - timedelta(days=1)
         assert habit.toggle_completion(specific_date) is True
         assert habit.is_completed_for_date(specific_date)
         assert not habit.is_completed_for_date()  # Today should still be incomplete
@@ -191,7 +191,9 @@ class TestHabitModel(TestCase):
 
         # Create some completions
         habit.toggle_completion()
-        habit.toggle_completion(timezone.now().date() - timedelta(days=1))
+        habit.toggle_completion(
+            timezone.localtime(timezone.now()).date() - timedelta(days=1)
+        )
         assert habit.completions.count() == 2
 
         # Delete habit should delete completions
@@ -203,7 +205,7 @@ class TestHabitModel(TestCase):
         habit = Habit.objects.create(user=user, name="Exercise", frequency="daily")
 
         completion = HabitCompletion.objects.create(
-            habit=habit, completed_at=timezone.now().date()
+            habit=habit, completed_at=timezone.localtime(timezone.now()).date()
         )
 
         expected_str = f"{habit.name} completed on {completion.completed_at}"

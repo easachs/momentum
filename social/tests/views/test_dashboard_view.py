@@ -26,7 +26,9 @@ class TestDashboardView(TestCase):
         # Create some completions
         for i in range(5):
             HabitCompletion.objects.create(
-                habit=habit, completed_at=timezone.now().date() - timedelta(days=i)
+                habit=habit,
+                completed_at=timezone.localtime(timezone.now()).date()
+                - timedelta(days=i),
             )
 
         response = self.client.get(
@@ -45,7 +47,7 @@ class TestDashboardView(TestCase):
             category="health",
         )
 
-        today = timezone.now().date()
+        today = timezone.localtime(timezone.now()).date()
         # Create completions for the last 5 days
         for i in range(5):
             HabitCompletion.objects.create(

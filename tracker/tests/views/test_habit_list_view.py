@@ -84,7 +84,7 @@ class TestHabitListView(TestCase):
         self.assertEqual(response.status_code, 200)
 
     def test_habit_list_view_streak_calculation(self):
-        today = timezone.now().date()
+        today = timezone.localtime(timezone.now()).date()
         for i in range(3):
             HabitCompletion.objects.create(
                 habit=self.habit1, completed_at=today - timedelta(days=i)
@@ -225,7 +225,7 @@ class TestHabitListView(TestCase):
         categories = ["health", "learning", "productivity"]
         habits_per_category = {}
 
-        today = timezone.now().date()
+        today = timezone.localtime(timezone.now()).date()
         # Create a habit in each category
         for category in categories:
             habit = Habit.objects.create(
@@ -262,7 +262,10 @@ class TestHabitListView(TestCase):
         )
 
         # Add some completions
-        HabitCompletion.objects.create(habit=habit, completed_at=timezone.now().date())
+        HabitCompletion.objects.create(
+            habit=habit,
+            completed_at=timezone.localtime(timezone.now()).date()
+        )
 
         # Get analytics before deletion
         response = self.client.get(reverse("tracker:habit_list"))

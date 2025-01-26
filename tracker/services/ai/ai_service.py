@@ -53,7 +53,7 @@ class AIHabitService:
             return f"Error: {str(e)}"
     
     def _gather_habit_stats(self, habits):
-        today = timezone.now().date()
+        today = timezone.localtime(timezone.now()).date()
         month_ago = today - timedelta(days=30)
         
         return [{

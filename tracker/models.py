@@ -72,7 +72,7 @@ class Habit(models.Model):
     # Instance methods - similar to Ruby instance methods
     def is_completed_for_date(self, date=None):
         if date is None:
-            date = timezone.now().date()
+            date = timezone.localtime(timezone.now()).date()
 
         if self.frequency == 'weekly':
             # For weekly habits, check if completed any time this week
@@ -87,7 +87,7 @@ class Habit(models.Model):
 
     def toggle_completion(self, date=None):
         if date is None:
-            date = timezone.now().date()
+            date = timezone.localtime(timezone.now()).date()
 
         if self.frequency == 'weekly':
             # For weekly habits, find any completion this week
@@ -115,7 +115,7 @@ class Habit(models.Model):
     def current_streak(self):
         # Complex business logic method
         # Similar to how you'd write it in Ruby, but with Python syntax
-        today = timezone.now().date()
+        today = timezone.localtime(timezone.now()).date()
         streak = 0
         date = today
 
@@ -189,7 +189,7 @@ class Habit(models.Model):
 
     def get_current_week_completion(self):
         """Return completion for current week if it exists"""
-        today = timezone.now().date()
+        today = timezone.localtime(timezone.now()).date()
         start_of_week = today - timedelta(days=today.weekday())
         return self.completions.filter(
             completed_at__gte=start_of_week,

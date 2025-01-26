@@ -30,7 +30,7 @@ class HabitListView(LoginRequiredMixin, ListView):
     context_object_name = 'habits'
 
     def get_queryset(self):
-        today = timezone.now().date()
+        today = timezone.localtime(timezone.now()).date()
         start_of_week = today - timedelta(days=today.weekday())
         start_of_month = today.replace(day=1)
 

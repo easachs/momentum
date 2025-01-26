@@ -38,7 +38,7 @@ class ApplicationDetailView(DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['today'] = timezone.now().date()
+        context["today"] = timezone.localtime(timezone.now()).date()
         return context
 
 class ApplicationCreateView(LoginRequiredMixin, CreateView):
@@ -108,5 +108,5 @@ class ContactDetailView(LoginRequiredMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['today'] = timezone.now().date()
+        context['today'] = timezone.localtime(timezone.now()).date()
         return context

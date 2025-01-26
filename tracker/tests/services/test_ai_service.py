@@ -29,7 +29,7 @@ class TestAIHabitService(TestCase):
         )
 
         # Add some completions
-        today = timezone.now().date()
+        today = timezone.localtime(timezone.now()).date()
         HabitCompletion.objects.create(
             habit=self.habit1,
             completed_at=today

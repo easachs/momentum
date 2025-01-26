@@ -218,7 +218,7 @@ class LeaderboardView(LoginRequiredMixin, View):
         return render(request, self.template_name, context)
 
 def get_habit_analytics(habits):
-    today = timezone.now().date()
+    today = timezone.localtime(timezone.now()).date()
     start_of_week = today - timedelta(days=today.weekday())
     start_of_month = today.replace(day=1)
 

@@ -287,7 +287,8 @@ class TestSocialViews(TestCase):
             for j in range(5):  # 5 completions per habit
                 HabitCompletion.objects.create(
                     habit=habit,
-                    completed_at=timezone.now().date() - timedelta(days=j)
+                    completed_at=timezone.localtime(timezone.now()).date()
+                    - timedelta(days=j),
                 )
 
         # Test query efficiency

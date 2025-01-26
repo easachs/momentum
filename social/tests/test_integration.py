@@ -14,11 +14,13 @@ from jobhunt.models import Application
 
 class TestSocialIntegration(TestCase):
     def setUp(self):
-        # Set up a fixed time first, before creating any objects
-        fixed_date = timezone.datetime(2024, 1, 1).astimezone(timezone.get_current_timezone())
+        # Set up the mock first
         self.patcher = mock.patch('django.utils.timezone.now')
         self.mock_now = self.patcher.start()
-        self.mock_now.return_value = fixed_date
+        
+        # Set a fixed time for the entire test
+        test_now = timezone.make_aware(timezone.datetime(2024, 1, 3, 12, 0))
+        self.mock_now.return_value = test_now
         
         self.user1 = get_user_model().objects.create_user(
             username='user1',
@@ -31,7 +33,7 @@ class TestSocialIntegration(TestCase):
             password='testpass123'
         )
         self.client.force_login(self.user1)
-        self.today = fixed_date.date()
+        self.today = test_now.date()
 
     def tearDown(self):
         self.patcher.stop()
@@ -164,7 +166,7 @@ class TestSocialIntegration(TestCase):
             name="Future Habit",
             frequency="daily"
         )
-        future_date = timezone.now().date() + timedelta(days=1)
+        future_date = timezone.localtime(timezone.now()).date() + timedelta(days=1)
         HabitCompletion.objects.create(
             habit=habit,
             completed_at=future_date
@@ -187,7 +189,7 @@ class TestSocialIntegration(TestCase):
         # Create a completion at the start of the month
         HabitCompletion.objects.create(
             habit=habit,
-            completed_at=timezone.now().date().replace(day=1)
+            completed_at=timezone.localtime(timezone.now()).date().replace(day=1),
         )
         
         response = self.client.get(
@@ -323,7 +325,10 @@ class TestSocialIntegration(TestCase):
             )
             
         # Reset mock time back to original for analytics calculation
-        self.mock_now.return_value = timezone.datetime.combine(self.today, timezone.datetime.min.time())
+        reset_time = timezone.make_aware(
+            timezone.datetime.combine(self.today, timezone.datetime.min.time())
+        )
+        self.mock_now.return_value = reset_time
         
         # View own dashboard
         self.client.force_login(self.user1)
@@ -415,7 +420,8 @@ class TestPerformance(TestCase):
                 completions.append(
                     HabitCompletion(
                         habit=habit,
-                        completed_at=timezone.now().date() - timedelta(days=i)
+                        completed_at=timezone.localtime(timezone.now()).date()
+                        - timedelta(days=i),
                     )
                 )
         HabitCompletion.objects.bulk_create(completions)

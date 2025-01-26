@@ -193,10 +193,7 @@ SOCIALACCOUNT_AUTO_SIGNUP = True
 
 LANGUAGE_CODE = "en-us"
 
-TIME_ZONE = 'America/Denver'  # Mountain Time
-
-USE_I18N = True
-
+TIME_ZONE = 'America/Denver'
 USE_TZ = True
 
 

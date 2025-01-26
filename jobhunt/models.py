@@ -83,7 +83,7 @@ class Application(models.Model):
     def is_due_soon(self):
         if not self.due:
             return False
-        return self.due - timezone.now().date() <= timedelta(days=7)
+        return self.due - timezone.localtime(timezone.now()).date() <= timedelta(days=7)
 
     @classmethod
     def get_analytics(cls, user):

@@ -14,7 +14,7 @@ class TestBadgeService(TestCase):
             username="testuser", password="testpass123"
         )
         self.badge_service = BadgeService(self.user)
-        self.today = timezone.now().date()
+        self.today = timezone.localtime(timezone.now()).date()
 
     def test_health_streak_badge(self):
         """Test 7-day streak badge for health habits"""
