@@ -17,7 +17,7 @@ class TestBadgeService(TestCase):
         self.today = timezone.localtime(timezone.now()).date()
 
     def test_health_streak_badge(self):
-        """Test 7-day streak badge for health habits"""
+        # Test 7-day streak badge for health habits
         habit = Habit.objects.create(
             user=self.user, name="Exercise", frequency="daily", category="health"
         )
@@ -34,7 +34,7 @@ class TestBadgeService(TestCase):
         )
 
     def test_learning_streak_badge(self):
-        """Test 7-day streak badge for learning habits"""
+        # Test 7-day streak badge for learning habits
         habit = Habit.objects.create(
             user=self.user, name="Study", frequency="daily", category="learning"
         )
@@ -51,7 +51,7 @@ class TestBadgeService(TestCase):
         )
 
     def test_productivity_streak_badge(self):
-        """Test 7-day streak badge for productivity habits"""
+        # Test 7-day streak badge for productivity habits
         habit = Habit.objects.create(
             user=self.user, name="Work", frequency="daily", category="productivity"
         )
@@ -70,7 +70,7 @@ class TestBadgeService(TestCase):
         )
 
     def test_weekly_habits_dont_count_for_streaks(self):
-        """Test that weekly habits don't contribute to streak badges"""
+        # Test that weekly habits don't contribute to streak badges
         habit = Habit.objects.create(
             user=self.user,
             name="Weekly Exercise",
@@ -90,7 +90,7 @@ class TestBadgeService(TestCase):
         )
 
     def test_first_friend_badge(self):
-        """Test that making a friend awards the badge"""
+        # Test that making a friend awards the badge
         friend = get_user_model().objects.create_user(
             username="friend", password="testpass123"
         )
@@ -104,7 +104,7 @@ class TestBadgeService(TestCase):
         )
 
     def test_completion_badges_mixed_habits(self):
-        """Test completion badges work with mix of daily and weekly habits"""
+        # Test completion badges work with mix of daily and weekly habits
         # Create one daily and one weekly habit
         daily_habit = Habit.objects.create(
             user=self.user, name="Daily Exercise", frequency="daily"
@@ -132,7 +132,7 @@ class TestBadgeService(TestCase):
         )
 
     def test_mixed_completion_rates_daily(self):
-        """Test completion rates with multiple daily habits at different completion levels"""
+        # Test completion rates with multiple daily habits at different completion levels
         # Create three daily habits
         habits = [
             Habit.objects.create(
@@ -159,7 +159,7 @@ class TestBadgeService(TestCase):
         )
 
     def test_mixed_completion_rates_weekly(self):
-        """Test completion rates with multiple weekly habits at different completion levels"""
+        # Test completion rates with multiple weekly habits at different completion levels
         # Create three weekly habits
         habits = [
             Habit.objects.create(
@@ -186,7 +186,7 @@ class TestBadgeService(TestCase):
         )
 
     def test_mixed_completion_rates_combined(self):
-        """Test completion rates with mix of daily and weekly habits at different completion levels"""
+        # Test completion rates with mix of daily and weekly habits at different completion levels
         # Create two daily habits
         daily_habits = [
             Habit.objects.create(
@@ -242,7 +242,7 @@ class TestBadgeService(TestCase):
         )
 
     def test_badge_check_query_efficiency(self):
-        """Test that badge checking is efficient"""
+        # Test that badge checking is efficient
         with CaptureQueriesContext(connection) as context:
             badge_service = BadgeService(self.user)
             badge_service.check_all_badges()

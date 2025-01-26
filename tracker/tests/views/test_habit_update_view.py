@@ -4,8 +4,7 @@ from django.contrib.auth import get_user_model
 from tracker.models import Habit
 
 class TestHabitUpdateView(TestCase):
-    """Tests for the Habit Update View"""
-
+    # Tests for the Habit Update View
     def setUp(self):
         self.user = get_user_model().objects.create_user(
             username="testuser",
@@ -61,3 +60,11 @@ class TestHabitUpdateView(TestCase):
         self.assertEqual(response.status_code, 404)
         self.habit.refresh_from_db()
         self.assertEqual(self.habit.name, "Test Habit")
+
+    def test_get_method_requires_login(self):
+        """Test that GET requests require login"""
+        self.client.logout()
+        response = self.client.get(
+            reverse('tracker:habit_update', kwargs={'pk': self.habit.pk})
+        )
+        self.assertEqual(response.status_code, 302)  # Redirects to login

@@ -29,7 +29,7 @@ class ApplicationModelTests(TestCase):
         self.patcher.stop()
 
     def test_string_representation(self):
-        """Test Application model methods"""
+        # Test Application model methods
         self.assertEqual(
             str(self.application),
             'Test Position at Test Company'
@@ -53,7 +53,7 @@ class ApplicationModelTests(TestCase):
         self.assertFalse(self.application.is_due_soon())
 
     def test_status_change_creation(self):
-        """Test that status changes are tracked correctly"""
+        # Test that status changes are tracked correctly
         # Initially no status changes for wishlist
         self.assertEqual(self.application.status_changes.count(), 0)
 
@@ -80,7 +80,7 @@ class ApplicationModelTests(TestCase):
         self.assertEqual(latest_change.new_status, 'interviewing')
 
     def test_analytics_calculation(self):
-        """Test that application analytics are calculated correctly"""
+        # Test that application analytics are calculated correctly
         # Create applications with different dates and statuses
         dates = [
             self.mock_now.return_value,
@@ -133,7 +133,7 @@ class StatusChangeModelTests(TestCase):
         )
 
     def test_status_change_history(self):
-        """Test the status change history functionality"""
+        # Test the status change history functionality
         # Create application with wishlist status (no status change created)
         application = Application.objects.create(
             user=self.user,
@@ -178,7 +178,7 @@ class StatusChangeModelTests(TestCase):
         )
 
     def test_status_change_history(self):
-        """Test the status change history functionality"""
+        # Test the status change history functionality
         # Create application with wishlist status (no status change created)
         application = Application.objects.create(
             user=self.user,

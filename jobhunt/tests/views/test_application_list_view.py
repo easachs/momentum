@@ -55,7 +55,7 @@ class TestApplicationListView(TestCase):
         self.assertTrue(applications[0].due <= applications[1].due)
 
     def test_application_list_filtering_and_sorting(self):
-        """Test application filtering and sorting"""
+        # Test application filtering and sorting
         # Create additional applications with different statuses and dates
         Application.objects.create(
             user=self.user,

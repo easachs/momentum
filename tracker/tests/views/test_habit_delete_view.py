@@ -4,8 +4,7 @@ from django.contrib.auth import get_user_model
 from tracker.models import Habit
 
 class TestHabitDeleteView(TestCase):
-    """Tests for the Habit Delete View"""
-
+    # Tests for the Habit Delete View
     def setUp(self):
         self.user = get_user_model().objects.create_user(
             username="testuser",

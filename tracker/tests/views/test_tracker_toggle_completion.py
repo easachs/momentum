@@ -7,8 +7,7 @@ from django.db import connection
 from tracker.models import Habit
 
 class TestTrackerToggleCompletion(TestCase):
-    """Tests for the Tracker Toggle Completion View"""
-
+    # Tests for the Tracker Toggle Completion View
     def setUp(self):
         self.today = timezone.localtime(timezone.now()).date()
         self.user = get_user_model().objects.create_user(
@@ -20,7 +19,7 @@ class TestTrackerToggleCompletion(TestCase):
         )
 
     def test_toggle_completion_view(self):
-        """Test that toggle_completion view works"""
+        # Test that toggle_completion view works
         today = timezone.localtime(timezone.now()).date()
         response = self.client.post(
             reverse("tracker:toggle_completion", kwargs={"pk": self.habit.pk}),
@@ -36,7 +35,7 @@ class TestTrackerToggleCompletion(TestCase):
         self.assertIn("/accounts/login/", response.url)
 
     def test_toggle_completion_preserves_referer(self):
-        """Test that toggle_completion preserves the referer header"""
+        # Test that toggle_completion preserves the referer header
         response = self.client.post(
             reverse("tracker:toggle_completion", kwargs={"pk": self.habit.pk}),
             HTTP_REFERER="/some/url/",
@@ -49,7 +48,7 @@ class TestTrackerToggleCompletion(TestCase):
         self.assertEqual(response.status_code, 404)
 
     def test_toggle_completion_query_efficiency(self):
-        """Test that habit completion toggling is efficient"""
+        # Test that habit completion toggling is efficient
         with CaptureQueriesContext(connection) as context:
             response = self.client.post(
                 reverse("tracker:toggle_completion", kwargs={"pk": self.habit.pk}),

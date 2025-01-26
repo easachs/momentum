@@ -13,7 +13,7 @@ class ApplicationIntegrationTests(TestCase):
         self.client.login(username='testuser', password='testpass123')
 
     def test_application_lifecycle(self):
-        """Test the complete lifecycle of an application"""
+        # Test the complete lifecycle of an application
         # Create application
         response = self.client.post(
             reverse('jobhunt:application_create'),

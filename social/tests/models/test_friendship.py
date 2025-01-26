@@ -45,7 +45,6 @@ class TestFriendshipModel(TestCase):
                 )
 
     def test_no_self_friendship(self):
-        # Instead of expecting ValidationError, we should check that self-friendships don't work
         friendship = Friendship.objects.create(
             sender=self.user1,
             receiver=self.user1,
@@ -93,4 +92,4 @@ class TestFriendshipModel(TestCase):
                 receiver=self.user2,
                 status='invalid_status'
             )
-            friendship.full_clean()  # This will validate the model 
+            friendship.full_clean()

@@ -13,7 +13,7 @@ class TestBadgeModel(TestCase):
         )
 
     def test_badge_uniqueness(self):
-        """Test that a user can't get duplicate badges"""
+        # Test that a user can't get duplicate badges
         badge1 = Badge.objects.create(user=self.user, badge_type="first_friend")
         # Try to create duplicate
         badge2, created = Badge.objects.get_or_create(
@@ -23,7 +23,7 @@ class TestBadgeModel(TestCase):
         self.assertEqual(badge1, badge2)
 
     def test_get_user_highest_badges(self):
-        """Test getting highest badges for each category"""
+        # Test getting highest badges for each category
         # Create some badges
         Badge.objects.create(user=self.user, badge_type="completions_10")
         Badge.objects.create(user=self.user, badge_type="completions_50")

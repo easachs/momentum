@@ -12,12 +12,12 @@ from django.db import connection
 from unittest import mock
 from jobhunt.models import Application
 
-class TestSocialIntegration(TestCase):
+class TestSocialIntegrations(TestCase):
     def setUp(self):
         # Set up the mock first
         self.patcher = mock.patch('django.utils.timezone.now')
         self.mock_now = self.patcher.start()
-        
+
         # Set a fixed time for the entire test
         test_now = timezone.make_aware(timezone.datetime(2024, 1, 3, 12, 0))
         self.mock_now.return_value = test_now
@@ -40,7 +40,7 @@ class TestSocialIntegration(TestCase):
 
     def test_friend_request_to_habit_viewing_flow(self):
         # Create a habit for user2
-        habit = Habit.objects.create(
+        Habit.objects.create(
             user=self.user2,
             name="Test Habit",
             frequency="daily"
@@ -109,7 +109,7 @@ class TestSocialIntegration(TestCase):
         self.assertTrue(user2_index < user1_index)
 
     def test_dashboard_analytics_display(self):
-        """Test that dashboard displays correct analytics"""
+        # Test that dashboard displays correct analytics
         test_now = self.mock_now.return_value
         
         habit = Habit.objects.create(
@@ -143,7 +143,7 @@ class TestSocialIntegration(TestCase):
         self.assertEqual(response.context['habit_analytics']['this_week_completions'], 1)
 
     def test_dashboard_friend_requests(self):
-        """Test that dashboard shows friend requests"""
+        # Test that dashboard shows friend requests
         # Create a pending friend request
         Friendship.objects.create(
             sender=self.user2,
@@ -160,7 +160,7 @@ class TestSocialIntegration(TestCase):
         self.assertEqual(response.context['friend_requests'][0].sender, self.user2)
 
     def test_analytics_with_future_dates(self):
-        """Test analytics calculations with future-dated completions"""
+        # Test analytics calculations with future-dated completions
         habit = Habit.objects.create(
             user=self.user1,
             name="Future Habit",
@@ -179,7 +179,7 @@ class TestSocialIntegration(TestCase):
         self.assertEqual(response.context['habit_analytics']['this_month_completions'], 0)
 
     def test_analytics_with_edge_dates(self):
-        """Test that analytics handle edge dates correctly"""
+        # Test that analytics handle edge dates correctly
         habit = Habit.objects.create(
             user=self.user1,
             name="Test Habit",
@@ -198,7 +198,7 @@ class TestSocialIntegration(TestCase):
         self.assertEqual(response.context['habit_analytics']['this_month_completions'], 1)
 
     def test_completion_rate_calculation(self):
-        """Test that completion rates are calculated correctly"""
+        # Test that completion rates are calculated correctly
         # Set the mock time to today before creating the habit
         test_now = timezone.datetime.combine(self.today, timezone.datetime.min.time())
         test_now = timezone.make_aware(test_now)
@@ -230,7 +230,7 @@ class TestSocialIntegration(TestCase):
         self.assertEqual(response.context['habit_analytics']['completion_rate'], 100.0)
 
     def test_weekly_habit_completion_rate(self):
-        """Test completion rate calculation for weekly habits"""
+        # Test completion rate calculation for weekly habits
         habit = Habit.objects.create(
             user=self.user1,
             name="Weekly Habit",
@@ -255,7 +255,7 @@ class TestSocialIntegration(TestCase):
         self.assertEqual(response.context['habit_analytics']['completion_rate'], 100.0)
 
     def test_multiple_habits_completion_rate(self):
-        """Test completion rate calculation with multiple habits"""
+        # Test completion rate calculation with multiple habits
         # Create habits with explicit creation time
         habits = [
             Habit.objects.create(
@@ -278,7 +278,7 @@ class TestSocialIntegration(TestCase):
         self.assertEqual(response.context['habit_analytics']['completion_rate'], 100.0)
 
     def test_analytics_query_efficiency(self):
-        """Test that analytics calculations are efficient"""
+        # Test that analytics calculations are efficient
         with CaptureQueriesContext(connection) as context:
             response = self.client.get(
                 reverse('social:dashboard', kwargs={'username': self.user1.username})
@@ -295,7 +295,7 @@ class TestSocialIntegration(TestCase):
             self.assertLess(len(analytics_queries), 5)
 
     def test_dashboard_query_count(self):
-        """Test that dashboard view uses efficient queries"""
+        # Test that dashboard view uses efficient queries
         with CaptureQueriesContext(connection) as context:
             response = self.client.get(
                 reverse('social:dashboard', kwargs={'username': self.user1.username})
@@ -306,7 +306,7 @@ class TestSocialIntegration(TestCase):
             self.assertLess(len(context.captured_queries), 25)  # Increased due to application analytics
 
     def test_dashboard_application_analytics(self):
-        """Test that application analytics appear correctly on dashboard"""
+        # Test that application analytics appear correctly on dashboard
         dates = [
             self.mock_now.return_value,
             self.mock_now.return_value - timedelta(days=3),
@@ -373,7 +373,7 @@ class TestConcurrentOperations(TransactionTestCase):
         self.patcher.stop()
 
     def test_concurrent_completions(self):
-        """Test concurrent habit completions"""
+        # Test concurrent habit completions
         today = self.mock_now.return_value.date()
         def complete_habit():
             with transaction.atomic():
@@ -427,7 +427,7 @@ class TestPerformance(TestCase):
         HabitCompletion.objects.bulk_create(completions)
         
     def test_analytics_performance(self):
-        """Test analytics performance with large dataset"""
+        # Test analytics performance with large dataset
         self.client.force_login(self.user)
         
         with CaptureQueriesContext(connection) as context:
