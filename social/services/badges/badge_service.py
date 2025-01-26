@@ -1,5 +1,6 @@
 from django.db.models import Q
-from ...models import Badge, Habit, HabitCompletion
+from social.models import Badge
+from tracker.models import Habit, HabitCompletion
 import logging
 
 logger = logging.getLogger(__name__)

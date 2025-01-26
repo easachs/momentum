@@ -1,5 +1,5 @@
-from datetime import datetime, timedelta
-from tracker.models import Habit, HabitCompletion
+from datetime import timedelta
+from tracker.models import HabitCompletion
 
 class HabitService:
     def __init__(self, user):

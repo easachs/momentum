@@ -1,5 +1,5 @@
 from django import template
-from tracker.models import Badge
+from social.models import Badge
 from django.db.models import Q
 
 register = template.Library()

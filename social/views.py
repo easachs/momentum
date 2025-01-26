@@ -7,10 +7,10 @@ from django.db.models import Q, Count, Prefetch, OuterRef, Subquery
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.utils import timezone
 from django.views.generic import DetailView, View
-from tracker.models import Habit, HabitCompletion, Badge, AIHabitSummary
-from tracker.services.badges.badge_service import BadgeService
+from tracker.models import Habit, HabitCompletion, AIHabitSummary
+from social.services.badges.badge_service import BadgeService
+from social.models import Friendship, Badge
 from jobhunt.models import Application
-from .models import Friendship
 
 class DashboardView(LoginRequiredMixin, DetailView):
     model = get_user_model()

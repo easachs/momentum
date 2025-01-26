@@ -38,3 +38,63 @@ class Friendship(models.Model):
 
     def __str__(self):
         return f"{self.sender} -> {self.receiver} ({self.status})"
+
+class Badge(models.Model):
+    BADGE_CHOICES = [
+        # Completion badges
+        ("completions_10", "10 Completions"),
+        ("completions_50", "50 Completions"),
+        ("completions_100", "100 Completions"),
+        # Streak badges
+        ("health_7_day", "7 Day Health Streak"),
+        ("health_30_day", "30 Day Health Streak"),
+        ("learning_7_day", "7 Day Learning Streak"),
+        ("learning_30_day", "30 Day Learning Streak"),
+        ("productivity_7_day", "7 Day Productivity Streak"),
+        ("productivity_30_day", "30 Day Productivity Streak"),
+        # Social badges
+        ("first_friend", "Made a Friend"),
+    ]
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    badge_type = models.CharField(max_length=50, choices=BADGE_CHOICES)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("user", "badge_type")
+
+    def __str__(self):
+        return f"{self.get_badge_type_display()} - {self.user.username}"
+
+    @classmethod
+    def get_user_highest_badges(cls, user):
+        """Get the highest badge for each category for a user"""
+        badges = cls.objects.filter(user=user)
+        highest_badges = {
+            "health": None,
+            "learning": None,
+            "productivity": None,
+            "friend": None,
+            "completions": None,
+        }
+
+        # Check streak badges
+        for category in ["health", "learning", "productivity"]:
+            if badges.filter(badge_type=f"{category}_30_day").exists():
+                highest_badges[category] = f"{category}_30_day"
+            elif badges.filter(badge_type=f"{category}_7_day").exists():
+                highest_badges[category] = f"{category}_7_day"
+
+        # Check friend badge
+        if badges.filter(badge_type="first_friend").exists():
+            highest_badges["friend"] = "first_friend"
+
+        # Check completion badges
+        if badges.filter(badge_type="completions_100").exists():
+            highest_badges["completions"] = "completions_100"
+        elif badges.filter(badge_type="completions_50").exists():
+            highest_badges["completions"] = "completions_50"
+        elif badges.filter(badge_type="completions_10").exists():
+            highest_badges["completions"] = "completions_10"
+
+        return highest_badges

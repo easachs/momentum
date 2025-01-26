@@ -4,9 +4,9 @@ from django.test import TestCase
 from django.contrib.auth import get_user_model
 from django.test.utils import CaptureQueriesContext
 from django.db import connection
-from social.models import Friendship
-from tracker.models import Habit, HabitCompletion, Badge
-from tracker.services.badges.badge_service import BadgeService
+from social.models import Friendship, Badge
+from tracker.models import Habit, HabitCompletion
+from social.services.badges.badge_service import BadgeService
 
 class TestBadgeService(TestCase):
     def setUp(self):
