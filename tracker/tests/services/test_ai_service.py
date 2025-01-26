@@ -1,10 +1,10 @@
+from datetime import timedelta
 from unittest import mock
 from django.test import TestCase
 from django.contrib.auth import get_user_model
+from django.utils import timezone
 from tracker.models import Habit, HabitCompletion, AIHabitSummary
 from tracker.services.ai.ai_service import AIHabitService
-from django.utils import timezone
-from datetime import timedelta
 
 class TestAIHabitService(TestCase):
     def setUp(self):
@@ -13,7 +13,7 @@ class TestAIHabitService(TestCase):
             password='testpass123'
         )
         self.service = AIHabitService()
-        
+
         # Create some test habits
         self.habit1 = Habit.objects.create(
             user=self.user,
@@ -59,14 +59,14 @@ class TestAIHabitService(TestCase):
 
         # Generate summary
         summary_content = self.service.generate_habit_summary(self.user)
-        
+
         self.assertEqual(summary_content, "Test summary content")
         mock_client.chat.completions.create.assert_called_once()
 
     def test_generate_habit_summary_no_habits(self):
         # Delete all habits
         Habit.objects.all().delete()
-        
+
         summary_content = self.service.generate_habit_summary(self.user)
         self.assertEqual(summary_content, "No habits found to analyze.")
 
@@ -90,7 +90,7 @@ class TestAIHabitService(TestCase):
 
         # Create summary
         summary, error = self.service.create_summary(self.user)
-        
+
         self.assertIsNone(error)
         self.assertIsInstance(summary, AIHabitSummary)
         self.assertEqual(summary.content, "Test summary content")
@@ -108,14 +108,14 @@ class TestAIHabitService(TestCase):
 
         # Try to create summary
         summary, error = self.service.create_summary(self.user)
-        
+
         self.assertIsNone(summary)
         self.assertEqual(error, "Error: API Error")
         self.assertEqual(AIHabitSummary.objects.count(), 0)
 
     def test_gather_habit_stats(self):
         stats = self.service._gather_habit_stats(self.user.habits.all())
-        
+
         self.assertEqual(len(stats), 2)
         self.assertEqual(stats[0]['name'], "Exercise")
         self.assertEqual(stats[0]['frequency'], "daily")
@@ -132,9 +132,9 @@ class TestAIHabitService(TestCase):
                 'category': 'health'
             }
         ]
-        
+
         prompt = self.service._build_prompt('testuser', habit_context)
-        
+
         self.assertIn('testuser', prompt)
         self.assertIn('Exercise', prompt)
         self.assertIn('health', prompt)

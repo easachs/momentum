@@ -70,19 +70,18 @@ class HabitAnalyticsService:
             by_category[cat]['count'] += 1
             by_category[cat]['streak'] = max(by_category[cat]['streak'], habit['streak_days'])
 
-        category_stats = []
-        for category, data in by_category.items():
-            if data['possible'] > 0:  # Only add categories with possible completions
-                category_stats.append({
-                    'category': category,
-                    'completed': data['completed'],
-                    'total': data['possible'],
-                    'habit_count': data['count'],
-                    'percentage': round(
-                        data['completed'] * 100 / data['possible'], 1
-                    )
-                })
-        return category_stats
+        return [
+            {
+                'category': category,
+                'completed': data['completed'],
+                'total': data['possible'],
+                'habit_count': data['count'],
+                'percentage': round(
+                    data['completed'] * 100 / data['possible'] if data['possible'] > 0 else 0.0, 1
+                )
+            }
+            for category, data in by_category.items()
+        ]
 
     def get_analytics(self, habits=None):
         """Get complete analytics for habits"""

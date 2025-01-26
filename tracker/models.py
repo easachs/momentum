@@ -178,14 +178,14 @@ class Habit(models.Model):
 
     def get_total_possible_completions(self):
         """Calculate total possible completions since habit creation"""
-        today = timezone.now().date()
-        days_since_creation = (today - self.created_at.date()).days + 1  # +1 to include today
-
+        today = timezone.localtime(timezone.now()).date()
+        created_at_date = self.created_at.date() if hasattr(self.created_at, 'date') else self.created_at
+        days_since_creation = (today - created_at_date).days + 1
+        
         if self.frequency == 'daily':
-            return days_since_creation
+            return max(1, days_since_creation)
         else:  # weekly
-            # Calculate full weeks since creation, rounding up if there's a partial week
-            return (days_since_creation + 6) // 7  # Using integer division to round up
+            return max(1, (days_since_creation + 6) // 7)
 
     def get_current_week_completion(self):
         """Return completion for current week if it exists"""
