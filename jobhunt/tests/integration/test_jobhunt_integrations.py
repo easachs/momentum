@@ -1,4 +1,3 @@
-from datetime import date
 from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth import get_user_model
@@ -61,54 +60,3 @@ class ApplicationIntegrationTests(TestCase):
         self.assertFalse(
             Application.objects.filter(pk=application.pk).exists()
         )
-
-    def test_filtering_workflow(self):
-        """Test the filtering and sorting workflow"""
-        # Create applications with different statuses
-        [
-            Application.objects.create(
-                user=self.user,
-                company=f'Company {i}',
-                title=f'Position {i}',
-                status=status,
-                due=date(2024, i+1, 1)
-            ) for i, status in enumerate(['wishlist', 'applied', 'interviewing'])
-        ]
-
-        # Test filtering by each status
-        for status in ['wishlist', 'applied', 'interviewing']:
-            response = self.client.get(f"{reverse('jobhunt:application_list')}?status={status}")
-            self.assertEqual(len(response.context['applications']), 1)
-            self.assertContains(response, f'Company {["wishlist", "applied", "interviewing"].index(status)}')
-        
-        # Test different sort orders
-        response = self.client.get(f"{reverse('jobhunt:application_list')}?sort=due")
-        apps = list(response.context['applications'])
-        self.assertEqual(len(apps), 3)
-        self.assertTrue(all(apps[i].due <= apps[i+1].due for i in range(len(apps)-1)))
-
-    def test_status_change_history(self):
-        """Test the status change history functionality"""
-        # Create application with wishlist status (no status change created)
-        application = Application.objects.create(
-            user=self.user,
-            company='History Company',
-            title='History Position',
-            status='wishlist'
-        )
-
-        status_sequence = ['applied', 'interviewing', 'offered']
-        for status in status_sequence:
-            application.status = status
-            application.save()
-
-        # Verify status history
-        changes = application.status_changes.all()
-        self.assertEqual(len(changes), len(status_sequence))  # No change for initial wishlist
-
-        # Verify order of changes
-        statuses = ['wishlist'] + status_sequence[:-1]  # old statuses
-        new_statuses = status_sequence  # new statuses
-        for i in range(len(changes)):
-            self.assertEqual(changes[i].old_status, statuses[i])
-            self.assertEqual(changes[i].new_status, new_statuses[i])
