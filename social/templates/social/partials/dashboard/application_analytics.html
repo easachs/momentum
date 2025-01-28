@@ -1,0 +1,36 @@
+<section class="mb-8">
+    <h2 class="text-2xl font-bold mb-6">
+        {% if user == viewed_user %}
+            Your Application Analytics
+        {% else %}
+            {{ viewed_user.username }}'s Application Analytics
+        {% endif %}
+    </h2>
+
+    <!-- Stats Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- Total Applications -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-sm font-medium text-gray-500 truncate">Total Applications</h3>
+            <p class="mt-2 text-3xl font-semibold text-gray-900">{{ application_analytics.total }}</p>
+        </div>
+        
+        <!-- This Week's Applications -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-sm font-medium text-gray-500 truncate">This Week's Applications</h3>
+            <p class="mt-2 text-3xl font-semibold text-gray-900">{{ application_analytics.week }}</p>
+        </div>
+        
+        <!-- This Month's Applications -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-sm font-medium text-gray-500 truncate">This Month's Applications</h3>
+            <p class="mt-2 text-3xl font-semibold text-gray-900">{{ application_analytics.month }}</p>
+        </div>
+        
+        <!-- Total Offers -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-sm font-medium text-gray-500 truncate">Total Offers</h3>
+            <p class="mt-2 text-3xl font-semibold text-gray-900">{{ application_analytics.offers }}</p>
+        </div>
+    </div>
+</section> 

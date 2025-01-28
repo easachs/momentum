@@ -12,7 +12,6 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 import os
 from pathlib import Path
-
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -28,7 +27,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv("DEBUG", "False") == "True"
 
 ALLOWED_HOSTS = []
 
@@ -40,6 +39,7 @@ AUTHENTICATION_BACKENDS = [
 # Application definition
 
 INSTALLED_APPS = [
+    "debug_toolbar",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -57,6 +57,7 @@ INSTALLED_APPS = [
     "widget_tweaks",
     "django_extensions",
     # Remove duplicate entries and use the Config classes
+    "jobhunt.apps.JobhuntConfig",
     "tracker.apps.TrackerConfig",
     "social.apps.SocialConfig",
 ]
@@ -69,6 +70,7 @@ INTERNAL_IPS = [
 
 MIDDLEWARE = [
     "allauth.account.middleware.AccountMiddleware",
+    "debug_toolbar.middleware.DebugToolbarMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -191,10 +193,7 @@ SOCIALACCOUNT_AUTO_SIGNUP = True
 
 LANGUAGE_CODE = "en-us"
 
-TIME_ZONE = 'America/Denver'  # Mountain Time
-
-USE_I18N = True
-
+TIME_ZONE = 'America/Denver'
 USE_TZ = True
 
 

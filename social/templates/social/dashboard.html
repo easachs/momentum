@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+{% load badges.filters %}
+
+{% block content %}
+<div class="py-8">
+    {% include 'social/partials/friends/friend_requests.html' %}
+    {% include 'social/partials/friends/friend_status.html' %}
+
+    <!-- Only show content if user is viewing their own profile or is friends -->
+    {% if user == viewed_user or friendship.status == 'accepted' %}
+        {% include 'social/partials/dashboard/habit_analytics.html' %}
+        {% include 'social/partials/dashboard/application_analytics.html' %}
+        {% include 'social/partials/dashboard/ai_insights.html' %}
+        
+        <!-- Badges Section -->
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 class="text-lg font-semibold mb-4">
+                {% if user == viewed_user %}
+                    Your Achievements
+                {% else %}
+                    {{ viewed_user.username }}'s Achievements
+                {% endif %}
+            </h2>
+            {% with badges=viewed_user|get_user_badges %}
+                {% include 'social/partials/dashboard/badges.html' with badges=badges %}
+            {% endwith %}
+        </div>
+
+        {% if user == viewed_user %}
+            {% include 'social/partials/dashboard/action_buttons.html' %}
+        {% endif %}
+    {% endif %}
+</div>
+{% endblock %}

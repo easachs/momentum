@@ -30,7 +30,6 @@
                     <!-- Today's completion -->
                     <form method="post" action="{% url 'tracker:toggle_completion' pk=habit.pk %}" class="inline-flex">
                         {% csrf_token %}
-                        <input type="hidden" name="date" value="{{ today|date:'Y-m-d' }}">
                         <button type="submit" 
                                 class="p-2 rounded-full transition-all duration-200 {% if today_completion %}bg-green-200 text-green-700 hover:bg-green-300{% else %}bg-gray-100 text-gray-400 hover:bg-gray-200{% endif %}">
                             <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -39,13 +38,12 @@
                         </button>
                     </form>
 
-                    <!-- Yesterday's completion (if habit is older than a day) -->
-                    {% if habit.created_at.date <= yesterday %}
+                    <!-- Yesterday's completion for daily habits -->
+                    {% if show_yesterday %}
                         <form method="post" action="{% url 'tracker:toggle_completion' pk=habit.pk %}" class="inline-flex">
                             {% csrf_token %}
                             <input type="hidden" name="date" value="{{ yesterday|date:'Y-m-d' }}">
                             <button type="submit" 
-                                    title="Toggle Yesterday's Completion"
                                     class="p-2 rounded-full transition-all duration-200 {% if yesterday_completion %}bg-green-200 text-green-700 hover:bg-green-300{% else %}bg-gray-100 text-gray-400 hover:bg-gray-200{% endif %}">
                                 <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
