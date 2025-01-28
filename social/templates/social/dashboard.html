@@ -3,8 +3,8 @@
 
 {% block content %}
 <div class="py-8">
-    {% include 'momentum/partials/shared/friend_requests.html' %}
-    {% include 'momentum/partials/shared/friend_status.html' %}
+    {% include 'social/partials/friends/friend_requests.html' %}
+    {% include 'social/partials/friends/friend_status.html' %}
 
     <!-- Only show content if user is viewing their own profile or is friends -->
     {% if user == viewed_user or friendship.status == 'accepted' %}
@@ -27,7 +27,7 @@
         </div>
 
         {% if user == viewed_user %}
-            {% include 'momentum/partials/shared/action_buttons.html' %}
+            {% include 'social/partials/dashboard/action_buttons.html' %}
         {% endif %}
     {% endif %}
 </div>

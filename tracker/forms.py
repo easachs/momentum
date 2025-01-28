@@ -27,4 +27,4 @@ class HabitForm(forms.ModelForm):
             'category': 'Choose a category to help organize your habits',
             'frequency': 'How often do you want to do this habit?',
             'description': 'Add any additional details about your habit (optional)'
-        } 
+        }
