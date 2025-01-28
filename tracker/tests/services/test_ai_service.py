@@ -5,6 +5,7 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 from tracker.models import Habit, HabitCompletion, AIHabitSummary
 from tracker.services.ai.ai_service import AIHabitService
+from jobhunt.models import Application
 
 class TestAIHabitService(TestCase):
     def setUp(self):
@@ -37,6 +38,33 @@ class TestAIHabitService(TestCase):
         HabitCompletion.objects.create(
             habit=self.habit2,
             completed_at=today - timedelta(days=2)
+        )
+
+        # Create test applications
+        self.today = timezone.now()
+        self.month_ago = self.today - timedelta(days=30)
+        
+        # Store the application instances
+        self.recent_app1 = Application.objects.create(
+            user=self.user,
+            company="Recent Active Co",
+            title="Recent Position",
+            status="interviewing",
+            created_at=self.today - timedelta(days=5)
+        )
+        self.recent_app2 = Application.objects.create(
+            user=self.user,
+            company="Recent Co",
+            title="Recent Position",
+            status="applied",
+            created_at=self.today - timedelta(days=15)
+        )
+        self.old_app = Application.objects.create(
+            user=self.user,
+            company="Old Co",
+            title="Old Position",
+            status="rejected",
+            created_at=self.today - timedelta(days=45)
         )
 
     @mock.patch('tracker.services.ai.ai_service.OpenAI')
@@ -133,9 +161,77 @@ class TestAIHabitService(TestCase):
             }
         ]
 
-        prompt = self.service._build_prompt('testuser', habit_context)
+        application_context = {
+            'total': 2,
+            'recent': 1,
+            'active': 1
+        }
 
+        prompt = self.service._build_prompt('testuser', habit_context, application_context)
+
+        # Test existing habit assertions
         self.assertIn('testuser', prompt)
         self.assertIn('Exercise', prompt)
         self.assertIn('health', prompt)
-        self.assertIn('streak: 1', prompt.lower()) 
+        self.assertIn('streak: 1', prompt.lower())
+
+        # Test new application assertions
+        self.assertIn('Job Search Status', prompt)
+        self.assertIn('Total Applications: 2', prompt)
+        self.assertIn('Applications in Last 30 Days: 1', prompt)
+        self.assertIn('Active Applications: 1', prompt)
+
+    def test_build_prompt_no_applications(self):
+        """Test prompt building when user has no applications"""
+        habit_context = [
+            {
+                'name': 'Exercise',
+                'frequency': 'daily',
+                'streak': 1,
+                'monthly_completions': 1,
+                'category': 'health'
+            }
+        ]
+
+        application_context = {
+            'total': 0,
+            'recent': 0,
+            'active': 0
+        }
+
+        prompt = self.service._build_prompt('testuser', habit_context, application_context)
+
+        # Should not include job search section when no applications
+        self.assertNotIn('Job Search Status', prompt)
+        self.assertIn('Exercise', prompt)  # Still includes habit info
+
+    @mock.patch('tracker.services.ai.ai_service.OpenAI')
+    def test_generate_habit_summary_with_applications(self, mock_openai):
+        # Mock OpenAI response
+        mock_client = mock.MagicMock()
+        mock_response = mock.MagicMock()
+        mock_response.choices = [mock.MagicMock(message=mock.MagicMock(content="Test summary"))]
+        mock_client.chat.completions.create.return_value = mock_response
+        mock_openai.return_value = mock_client
+        self.service.client = mock_client
+
+        # Delete using the stored instance
+        self.old_app.delete()
+
+        summary = self.service.generate_habit_summary(self.user)
+        prompt = mock_client.chat.completions.create.call_args_list[0].kwargs['messages'][1]['content']
+        
+        self.assertIn("Exercise", prompt)
+        self.assertIn("Job Search Status", prompt)
+        self.assertIn("Total Applications: 2", prompt)
+        self.assertIn("Applications in Last 30 Days: 2", prompt)
+        self.assertIn("Active Applications: 2", prompt)
+
+    def test_gather_application_stats(self):
+        # Delete using the stored instance
+        self.old_app.delete()
+
+        stats = self.service._gather_application_stats(self.user)
+        self.assertEqual(stats['total'], 2)
+        self.assertEqual(stats['recent'], 2)
+        self.assertEqual(stats['active'], 2) 
