@@ -17,9 +17,9 @@ Including another URLconf
 
 from django.contrib import admin
 from django.urls import include, path
-from allauth.socialaccount.providers.google.views import oauth2_login, oauth2_callback
 from django.shortcuts import redirect
 from django.conf import settings
+from allauth.socialaccount.providers.google.views import oauth2_login, oauth2_callback
 from tracker.views import root_redirect
 
 # Redirect admin login to Google OAuth

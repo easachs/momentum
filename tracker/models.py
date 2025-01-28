@@ -181,7 +181,7 @@ class Habit(models.Model):
         today = timezone.localtime(timezone.now()).date()
         created_at_date = self.created_at.date() if hasattr(self.created_at, 'date') else self.created_at
         days_since_creation = (today - created_at_date).days + 1
-        
+
         if self.frequency == 'daily':
             return max(1, days_since_creation)
         else:  # weekly

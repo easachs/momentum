@@ -15,9 +15,9 @@ from django.views.decorators.csrf import csrf_protect
 from django.db.models.functions import Cast
 
 from tracker.templatetags.markdown.filters import markdown_filter
+from social.services.badges.badge_service import BadgeService
 from .models import Habit
 from .services.ai.ai_service import AIHabitService
-from social.services.badges.badge_service import BadgeService
 from .services.analytics.analytics_service import HabitAnalyticsService
 from .services.habits.habit_service import HabitService
 from .services.navigation.navigation_service import NavigationService

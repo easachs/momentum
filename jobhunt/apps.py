@@ -6,4 +6,4 @@ class JobhuntConfig(AppConfig):
     name = "jobhunt"
 
     def ready(self):
-        import jobhunt.signals  # noqa
+        import jobhunt.signals

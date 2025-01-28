@@ -14,3 +14,11 @@ disable=C0111,  # Missing docstring warning
 
 [FORMAT]
 max-line-length=120
+
+[SIMILARITIES]
+# Ignore migrations when checking for duplicate code
+ignore-imports=yes
+min-similarity-lines=10
+ignore-comments=yes
+ignore-docstrings=yes
+ignore-signatures=yes

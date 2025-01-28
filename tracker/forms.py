@@ -7,17 +7,29 @@ class HabitForm(forms.ModelForm):
         fields = ['name', 'category', 'frequency', 'description']
         widgets = {
             'name': forms.TextInput(attrs={
-                'class': 'shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md',
+                'class': (
+                    'mt-1 block w-full rounded-md border-gray-300 shadow-sm '
+                    'focus:border-blue-500 focus:ring-blue-500'
+                ),
                 'placeholder': 'Exercise, Read, Meditate...'
             }),
             'category': forms.Select(attrs={
-                'class': 'shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md'
+                'class': (
+                    'mt-1 block w-full rounded-md border-gray-300 shadow-sm '
+                    'focus:border-blue-500 focus:ring-blue-500'
+                )
             }),
             'frequency': forms.Select(attrs={
-                'class': 'shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md'
+                'class': (
+                    'mt-1 block w-full rounded-md border-gray-300 shadow-sm '
+                    'focus:border-blue-500 focus:ring-blue-500'
+                )
             }),
             'description': forms.Textarea(attrs={
-                'class': 'shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md',
+                'class': (
+                    'mt-1 block w-full rounded-md border-gray-300 shadow-sm '
+                    'focus:border-blue-500 focus:ring-blue-500 h-32'
+                ),
                 'rows': 3,
                 'placeholder': 'Optional description of your habit...'
             })
