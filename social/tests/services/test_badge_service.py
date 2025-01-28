@@ -7,13 +7,14 @@ from django.db import connection
 from social.models import Friendship, Badge
 from tracker.models import Habit, HabitCompletion
 from social.services.badges.badge_service import BadgeService
+from jobhunt.models import Application, Contact
 
 class TestBadgeService(TestCase):
     def setUp(self):
         self.user = get_user_model().objects.create_user(
             username="testuser", password="testpass123"
         )
-        self.badge_service = BadgeService(self.user)
+        self.service = BadgeService(self.user)
         self.today = timezone.localtime(timezone.now()).date()
 
     def test_health_streak_badge(self):
@@ -28,7 +29,7 @@ class TestBadgeService(TestCase):
                 habit=habit, completed_at=self.today - timedelta(days=i)
             )
 
-        self.badge_service.check_streak_badges()
+        self.service.check_streak_badges()
         self.assertTrue(
             Badge.objects.filter(user=self.user, badge_type="health_7_day").exists()
         )
@@ -45,7 +46,7 @@ class TestBadgeService(TestCase):
                 habit=habit, completed_at=self.today - timedelta(days=i)
             )
 
-        self.badge_service.check_streak_badges()
+        self.service.check_streak_badges()
         self.assertTrue(
             Badge.objects.filter(user=self.user, badge_type="learning_7_day").exists()
         )
@@ -62,7 +63,7 @@ class TestBadgeService(TestCase):
                 habit=habit, completed_at=self.today - timedelta(days=i)
             )
 
-        self.badge_service.check_streak_badges()
+        self.service.check_streak_badges()
         self.assertTrue(
             Badge.objects.filter(
                 user=self.user, badge_type="productivity_7_day"
@@ -84,7 +85,7 @@ class TestBadgeService(TestCase):
                 habit=habit, completed_at=self.today - timedelta(weeks=i)
             )
 
-        self.badge_service.check_streak_badges()
+        self.service.check_streak_badges()
         self.assertFalse(
             Badge.objects.filter(user=self.user, badge_type="health_7_day").exists()
         )
@@ -98,7 +99,7 @@ class TestBadgeService(TestCase):
         # Create accepted friendship
         Friendship.objects.create(sender=self.user, receiver=friend, status="accepted")
 
-        self.badge_service.check_social_badges()
+        self.service.check_social_badges()
         self.assertTrue(
             Badge.objects.filter(user=self.user, badge_type="first_friend").exists()
         )
@@ -126,7 +127,7 @@ class TestBadgeService(TestCase):
             )
 
         # Should have 10 total completions (6 daily + 4 weekly)
-        self.badge_service.check_completion_badges()
+        self.service.check_completion_badges()
         self.assertTrue(
             Badge.objects.filter(user=self.user, badge_type="completions_10").exists()
         )
@@ -153,7 +154,7 @@ class TestBadgeService(TestCase):
         # Third habit: 0/3 days completed
 
         # Should have 3 total completions out of 9 possible (3 habits × 3 days)
-        self.badge_service.check_completion_badges()
+        self.service.check_completion_badges()
         self.assertFalse(
             Badge.objects.filter(user=self.user, badge_type="completions_10").exists()
         )
@@ -180,7 +181,7 @@ class TestBadgeService(TestCase):
         # Third habit: no completions
 
         # Should have 4 completions total
-        self.badge_service.check_completion_badges()
+        self.service.check_completion_badges()
         self.assertFalse(
             Badge.objects.filter(user=self.user, badge_type="completions_10").exists()
         )
@@ -224,7 +225,7 @@ class TestBadgeService(TestCase):
         # Second weekly habit: no completions
 
         # Should have 7 completions total (3 + 2 + 2 + 0)
-        self.badge_service.check_completion_badges()
+        self.service.check_completion_badges()
         self.assertFalse(
             Badge.objects.filter(user=self.user, badge_type="completions_10").exists()
         )
@@ -236,7 +237,7 @@ class TestBadgeService(TestCase):
             )
 
         # Now should have 10 completions and get the badge
-        self.badge_service.check_completion_badges()
+        self.service.check_completion_badges()
         self.assertTrue(
             Badge.objects.filter(user=self.user, badge_type="completions_10").exists()
         )
@@ -244,8 +245,199 @@ class TestBadgeService(TestCase):
     def test_badge_check_query_efficiency(self):
         # Test that badge checking is efficient
         with CaptureQueriesContext(connection) as context:
-            badge_service = BadgeService(self.user)
-            badge_service.check_all_badges()
+            service = BadgeService(self.user)
+            service.check_all_badges()
 
             # Badge checks should be optimized
             self.assertLess(len(context.captured_queries), 8)
+
+    def test_applications_5_badge(self):
+        # Create 4 applications
+        for i in range(4):
+            Application.objects.create(
+                user=self.user,
+                company=f"Company {i}",
+                title=f"Position {i}",
+                status="wishlist"
+            )
+        
+        self.service.check_application_badges()
+        self.assertFalse(
+            Badge.objects.filter(
+                user=self.user,
+                badge_type='applications_5'
+            ).exists()
+        )
+
+        # Create 5th application
+        Application.objects.create(
+            user=self.user,
+            company="Company 5",
+            title="Position 5",
+            status="wishlist"
+        )
+
+        self.service.check_application_badges()
+        self.assertTrue(
+            Badge.objects.filter(
+                user=self.user,
+                badge_type='applications_5'
+            ).exists()
+        )
+
+    def test_applied_5_badge(self):
+        # Create 4 applied applications
+        for i in range(4):
+            Application.objects.create(
+                user=self.user,
+                company=f"Company {i}",
+                title=f"Position {i}",
+                status="applied"
+            )
+        
+        self.service.check_application_badges()
+        self.assertFalse(
+            Badge.objects.filter(
+                user=self.user,
+                badge_type='applied_5'
+            ).exists()
+        )
+
+        # Create 5th applied application
+        Application.objects.create(
+            user=self.user,
+            company="Company 5",
+            title="Position 5",
+            status="applied"
+        )
+
+        self.service.check_application_badges()
+        self.assertTrue(
+            Badge.objects.filter(
+                user=self.user,
+                badge_type='applied_5'
+            ).exists()
+        )
+
+    def test_job_offered_badge(self):
+        # Create non-offered application
+        Application.objects.create(
+            user=self.user,
+            company="Company",
+            title="Position",
+            status="applied"
+        )
+        
+        self.service.check_application_badges()
+        self.assertFalse(
+            Badge.objects.filter(
+                user=self.user,
+                badge_type='job_offered'
+            ).exists()
+        )
+
+        # Create offered application
+        Application.objects.create(
+            user=self.user,
+            company="Dream Co",
+            title="Dream Job",
+            status="offered"
+        )
+
+        self.service.check_application_badges()
+        self.assertTrue(
+            Badge.objects.filter(
+                user=self.user,
+                badge_type='job_offered'
+            ).exists()
+        )
+
+    def test_first_contact_badge(self):
+        self.service.check_contact_badges()
+        self.assertFalse(
+            Badge.objects.filter(
+                user=self.user,
+                badge_type='first_contact'
+            ).exists()
+        )
+
+        # Create first contact
+        Contact.objects.create(
+            user=self.user,
+            name="John Doe",
+            company="Tech Co",
+            role="recruiter"
+        )
+
+        self.service.check_contact_badges()
+        self.assertTrue(
+            Badge.objects.filter(
+                user=self.user,
+                badge_type='first_contact'
+            ).exists()
+        )
+
+    def test_wishlist_expired_badge(self):
+        # Create non-expired wishlist application
+        Application.objects.create(
+            user=self.user,
+            company="Future Co",
+            title="Future Position",
+            status="wishlist",
+            due=self.today + timedelta(days=1)
+        )
+        
+        self.service.check_application_badges()
+        self.assertFalse(
+            Badge.objects.filter(
+                user=self.user,
+                badge_type='wishlist_expired'
+            ).exists()
+        )
+
+        # Create expired wishlist application
+        Application.objects.create(
+            user=self.user,
+            company="Past Co",
+            title="Past Position",
+            status="wishlist",
+            due=self.today - timedelta(days=1)
+        )
+
+        self.service.check_application_badges()
+        self.assertTrue(
+            Badge.objects.filter(
+                user=self.user,
+                badge_type='wishlist_expired'
+            ).exists()
+        )
+
+    def test_badges_other_user(self):
+        """Test that badges aren't awarded for other users' actions"""
+        other_user = get_user_model().objects.create_user(
+            username='otheruser',
+            password='testpass123'
+        )
+
+        # Create 5 applications for other user
+        for i in range(5):
+            Application.objects.create(
+                user=other_user,
+                company=f"Company {i}",
+                title=f"Position {i}",
+                status="applied"
+            )
+
+        self.service.check_application_badges()
+        self.assertFalse(
+            Badge.objects.filter(
+                user=self.user,
+                badge_type='applications_5'
+            ).exists()
+        )
+        self.assertFalse(
+            Badge.objects.filter(
+                user=self.user,
+                badge_type='applied_5'
+            ).exists()
+        )

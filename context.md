@@ -7,9 +7,8 @@ Momentum is a habit and job application tracker built using Django. It helps use
 
 ### `tracker` app: Manages all habit-related functionality, including:
 - Habit creation and management (CRUD operations).
-- Streak tracking and milestone achievements via badges (10/50/100 habit completions, 7/30 day streaks for a habit in each category).
 - Dashboard visualization of habit progress.
-- Leaderboard for friendly competition among users.
+- Habit streak tracking.
 
 ###	`jobhunt` app: Focused on managing job applications and professional networking:
 - CRUD operations for job applications and contacts.
@@ -22,6 +21,8 @@ Momentum is a habit and job application tracker built using Django. It helps use
 
 ###	`social` app: Manages user interactions and collaboration:
 - Features for adding friends and viewing their dashboards.
+- Leaderboard for friendly competition among users.
+- Milestone achievements with badges (make a friend, 10/50/100 habit completions, 7/30 day streaks for a habit in each category).
 - Social sharing of progress (e.g., completed habits, streaks, badges).
 
 ## Features
@@ -52,16 +53,15 @@ Momentum is a habit and job application tracker built using Django. It helps use
 ## Coding Preferences:
 - Follow Django best practices.
 - Use class-based views (CBVs) for CRUD operations.
-- Use `ModelForm` for forms.
-- Write tests for models, views, forms, and integration.
+- Write tests for models, views, and integration.
 - Use Tailwind for consistent and reusable UI components.
 - Modularize templates with partials for shared elements.
 
 ## Roadmap
 - MVP Goals:
-  - Full CRUD for habits and job applications.
+  - Full CRUD for habits and job applications (done).
   - Dashboard with analytics for both habits and job applications.
-  - Basic Google OAuth-based authentication.
+  - Basic Google OAuth-based authentication (done).
   - Styling with Tailwind CSS for all pages.
 
 - Stretch Goals:

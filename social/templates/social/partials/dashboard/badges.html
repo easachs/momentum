@@ -86,4 +86,64 @@
             {% endif %}
         </p>
     </div>
+
+    <!-- Applications Badge -->
+    <div class="text-center">
+        <div class="inline-flex p-3 rounded-full {% if badges.applications %}bg-indigo-100{% else %}bg-gray-100{% endif %}">
+            <svg class="h-8 w-8 {% if badges.applications %}text-indigo-600{% else %}text-gray-400{% endif %}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+        </div>
+        <p class="mt-2 font-medium {% if badges.applications %}text-indigo-600{% else %}text-gray-400{% endif %}">
+            5 Applications Created
+        </p>
+    </div>
+
+    <!-- Applied Badge -->
+    <div class="text-center">
+        <div class="inline-flex p-3 rounded-full {% if badges.applied %}bg-teal-100{% else %}bg-gray-100{% endif %}">
+            <svg class="h-8 w-8 {% if badges.applied %}text-teal-600{% else %}text-gray-400{% endif %}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+            </svg>
+        </div>
+        <p class="mt-2 font-medium {% if badges.applied %}text-teal-600{% else %}text-gray-400{% endif %}">
+            5 Applications Submitted
+        </p>
+    </div>
+
+    <!-- Job Offer Badge -->
+    <div class="text-center">
+        <div class="inline-flex p-3 rounded-full {% if badges.offered %}bg-pink-100{% else %}bg-gray-100{% endif %}">
+            <svg class="h-8 w-8 {% if badges.offered %}text-pink-600{% else %}text-gray-400{% endif %}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"/>
+            </svg>
+        </div>
+        <p class="mt-2 font-medium {% if badges.offered %}text-pink-600{% else %}text-gray-400{% endif %}">
+            Job Offer Received
+        </p>
+    </div>
+
+    <!-- Contact Badge -->
+    <div class="text-center">
+        <div class="inline-flex p-3 rounded-full {% if badges.contact %}bg-orange-100{% else %}bg-gray-100{% endif %}">
+            <svg class="h-8 w-8 {% if badges.contact %}text-orange-600{% else %}text-gray-400{% endif %}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+            </svg>
+        </div>
+        <p class="mt-2 font-medium {% if badges.contact %}text-orange-600{% else %}text-gray-400{% endif %}">
+            First Contact Added
+        </p>
+    </div>
+
+    <!-- Wishlist Badge -->
+    <div class="text-center">
+        <div class="inline-flex p-3 rounded-full {% if badges.wishlist %}bg-violet-100{% else %}bg-gray-100{% endif %}">
+            <svg class="h-8 w-8 {% if badges.wishlist %}text-violet-600{% else %}text-gray-400{% endif %}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/>
+            </svg>
+        </div>
+        <p class="mt-2 font-medium {% if badges.wishlist %}text-violet-600{% else %}text-gray-400{% endif %}">
+            Wishlist Item Expired
+        </p>
+    </div>
 </div> 

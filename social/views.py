@@ -63,6 +63,11 @@ class DashboardView(LoginRequiredMixin, DetailView):
                 'application_analytics': Application.get_analytics(viewed_user)
             })
 
+        # If user doesn't have wishlist badge yet, check for expired items
+        if viewed_user == self.request.user:
+            badge_service = BadgeService(viewed_user)
+            badge_service.check_application_badges()  # This will check wishlist expired among others
+
         return context
 
 class FriendRequestView(LoginRequiredMixin, View):

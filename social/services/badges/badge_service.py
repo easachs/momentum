@@ -1,7 +1,9 @@
-from django.db.models import Q
+import logging
+from django.db.models import Q, Count, Exists
+from django.utils import timezone
 from social.models import Badge
 from tracker.models import Habit, HabitCompletion
-import logging
+from jobhunt.models import Application, Contact
 
 logger = logging.getLogger(__name__)
 
@@ -14,6 +16,8 @@ class BadgeService:
         self.check_completion_badges()
         self.check_social_badges()
         self.check_streak_badges()
+        self.check_application_badges()
+        self.check_contact_badges()
 
     def check_social_badges(self):
         """Check and award social badges"""
@@ -60,10 +64,46 @@ class BadgeService:
             if longest_streak >= 7:
                 self._award_badge(f'{category}_7_day')
 
+    def check_application_badges(self):
+        """Check and award job application badges"""
+        # Get all applications in one query with annotations
+        applications = Application.objects.filter(user=self.user)
+        total_count = applications.count()
+        
+        if total_count >= 5:
+            self._award_badge('applications_5')
+
+        # Get counts and flags for other badges
+        status_stats = applications.aggregate(
+            applied_count=Count('id', filter=Q(status='applied')),
+            has_offer=Count('id', filter=Q(status='offered')),
+            has_expired_wishlist=Count(
+                'id',
+                filter=Q(
+                    status='wishlist',
+                    due__lt=timezone.localtime(timezone.now()).date()
+                )
+            )
+        )
+
+        if status_stats['applied_count'] >= 5:
+            self._award_badge('applied_5')
+        
+        if status_stats['has_offer'] > 0:
+            self._award_badge('job_offered')
+            
+        if status_stats['has_expired_wishlist'] > 0:
+            self._award_badge('wishlist_expired')
+
+    def check_contact_badges(self):
+        """Check and award contact badges"""
+        has_contact = Contact.objects.filter(user=self.user).exists()
+        if has_contact:
+            self._award_badge('first_contact')
+
     def _award_badge(self, badge_type):
         """Award a badge if it hasn't been awarded yet. Once awarded, badges are permanent."""
-        badge, created = Badge.objects.get_or_create(
+        Badge.objects.get_or_create(
             user=self.user,
             badge_type=badge_type
         )
-        return badge

@@ -54,6 +54,12 @@ class Badge(models.Model):
         ("productivity_30_day", "30 Day Productivity Streak"),
         # Social badges
         ("first_friend", "Made a Friend"),
+        # New job application badges
+        ("applications_5", "5 Applications Created"),
+        ("applied_5", "5 Applications Submitted"),
+        ("job_offered", "Job Offer Received"),
+        ("first_contact", "First Contact Added"),
+        ("wishlist_expired", "Wishlist Item Expired"),
     ]
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
@@ -76,6 +82,12 @@ class Badge(models.Model):
             "productivity": None,
             "friend": None,
             "completions": None,
+            # Add job application badges
+            "applications": None,
+            "applied": None,
+            "offered": None,
+            "contact": None,
+            "wishlist": None,
         }
 
         # Check streak badges
@@ -96,5 +108,17 @@ class Badge(models.Model):
             highest_badges["completions"] = "completions_50"
         elif badges.filter(badge_type="completions_10").exists():
             highest_badges["completions"] = "completions_10"
+
+        # Check job application badges
+        if badges.filter(badge_type="applications_5").exists():
+            highest_badges["applications"] = "applications_5"
+        if badges.filter(badge_type="applied_5").exists():
+            highest_badges["applied"] = "applied_5"
+        if badges.filter(badge_type="job_offered").exists():
+            highest_badges["offered"] = "job_offered"
+        if badges.filter(badge_type="first_contact").exists():
+            highest_badges["contact"] = "first_contact"
+        if badges.filter(badge_type="wishlist_expired").exists():
+            highest_badges["wishlist"] = "wishlist_expired"
 
         return highest_badges

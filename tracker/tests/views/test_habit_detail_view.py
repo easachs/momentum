@@ -17,13 +17,19 @@ class TestHabitDetailView(TestCase):
         )
         self.client.login(username='testuser', password='testpass123')
 
-        created_at = timezone.localtime(timezone.now()) - timedelta(days=5)
+        # Get current time and ensure habit was created exactly 5 days ago
+        now = timezone.localtime(timezone.now())
+        self.today = now.date()
+        
+        # Set creation time to same time of day 5 days ago
+        self.five_days_ago = now - timedelta(days=5)
+        
         self.habit = Habit.objects.create(
             user=self.user,
             name="Test Habit",
             frequency="daily",
             category="health",
-            created_at=created_at,
+            created_at=self.five_days_ago,
         )
 
     def test_habit_detail_view_requires_login(self):
@@ -60,12 +66,11 @@ class TestHabitDetailView(TestCase):
 
     def test_habit_detail_completion_rate(self):
         """Test that habit detail view shows correct completion rate"""
-        today = timezone.localtime(timezone.now()).date()
-        # Create 3 completions in the last 6 days
+        # Create 3 completions in the last 5 days (60% completion rate)
         for i in range(3):
             HabitCompletion.objects.create(
                 habit=self.habit,
-                completed_at=today - timedelta(days=i)
+                completed_at=self.today - timedelta(days=i)
             )
 
         response = self.client.get(
@@ -73,14 +78,14 @@ class TestHabitDetailView(TestCase):
         )
         self.assertEqual(response.status_code, 200)
 
-        # Should show 3 completions out of 6 possible days (50%)
-        self.assertContains(response, "50.0%")
+        # Should show 3 completions out of 5 possible days (60%)
+        self.assertContains(response, "60.0%")
 
         # Verify the context data
         analytics = response.context["analytics"]
-        self.assertEqual(analytics["completion_rate"], 50.0)
+        self.assertEqual(analytics["completion_rate"], 60.0)
         self.assertEqual(analytics["total_completions"], 3)
-        self.assertEqual(analytics["total_possible"], 6)  # 6 days including today
+        self.assertEqual(analytics["total_possible"], 5)  # 5 days including today
 
     def test_habit_detail_view_unauthorized_access(self):
         """Test that users can't access other users' habits"""

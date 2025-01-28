@@ -5,6 +5,7 @@ from django.db import models
 from django.utils import timezone
 from .models import Application, Contact
 from .forms import ApplicationForm, ContactForm
+from social.services.badges.badge_service import BadgeService
 
 class ApplicationListView(LoginRequiredMixin, ListView):
     model = Application
@@ -48,7 +49,11 @@ class ApplicationCreateView(LoginRequiredMixin, CreateView):
 
     def form_valid(self, form):
         form.instance.user = self.request.user
-        return super().form_valid(form)
+        response = super().form_valid(form)
+        # Check application badges after creation
+        badge_service = BadgeService(self.request.user)
+        badge_service.check_application_badges()
+        return response
 
     def get_success_url(self):
         return reverse('jobhunt:application_detail', kwargs={'pk': self.object.pk})
@@ -60,6 +65,13 @@ class ApplicationUpdateView(LoginRequiredMixin, UpdateView):
 
     def get_queryset(self):
         return Application.objects.filter(user=self.request.user)
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        # Check application badges after status update
+        badge_service = BadgeService(self.request.user)
+        badge_service.check_application_badges()
+        return response
 
     def get_success_url(self):
         return reverse('jobhunt:application_detail', kwargs={'pk': self.object.pk})
@@ -80,7 +92,11 @@ class ContactCreateView(LoginRequiredMixin, CreateView):
 
     def form_valid(self, form):
         form.instance.user = self.request.user
-        return super().form_valid(form)
+        response = super().form_valid(form)
+        # Check contact badge after creation
+        badge_service = BadgeService(self.request.user)
+        badge_service.check_contact_badges()
+        return response
 
 class ContactUpdateView(LoginRequiredMixin, UpdateView):
     model = Contact
