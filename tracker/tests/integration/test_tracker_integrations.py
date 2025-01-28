@@ -22,5 +22,5 @@ class TestTrackerIntegrations(TestCase):
         )
         self.assertRedirects(
             response,
-            reverse('tracker:habit_list')
+            reverse('tracker:habit_detail', kwargs={'pk': Habit.objects.latest('created_at').pk})
         )

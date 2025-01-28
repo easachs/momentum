@@ -1,11 +1,12 @@
 from django.urls import reverse_lazy, reverse
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.db import models
+from django.db import models, IntegrityError
 from django.utils import timezone
+from django.contrib import messages
+from social.services.badges.badge_service import BadgeService
 from .models import Application, Contact
 from .forms import ApplicationForm, ContactForm
-from social.services.badges.badge_service import BadgeService
 
 class ApplicationListView(LoginRequiredMixin, ListView):
     model = Application
@@ -92,11 +93,18 @@ class ContactCreateView(LoginRequiredMixin, CreateView):
 
     def form_valid(self, form):
         form.instance.user = self.request.user
-        response = super().form_valid(form)
-        # Check contact badge after creation
-        badge_service = BadgeService(self.request.user)
-        badge_service.check_contact_badges()
-        return response
+        try:
+            response = super().form_valid(form)
+            # Check contact badge after creation
+            badge_service = BadgeService(self.request.user)
+            badge_service.check_contact_badges()
+            return response
+        except IntegrityError:
+            messages.error(
+                self.request,
+                "A contact with this email already exists."
+            )
+            return self.form_invalid(form)
 
 class ContactUpdateView(LoginRequiredMixin, UpdateView):
     model = Contact

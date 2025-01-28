@@ -21,6 +21,7 @@ from social.services.badges.badge_service import BadgeService
 from .services.analytics.analytics_service import HabitAnalyticsService
 from .services.habits.habit_service import HabitService
 from .services.navigation.navigation_service import NavigationService
+from .forms import HabitForm
 
 logger = logging.getLogger(__name__)
 
@@ -100,26 +101,26 @@ class HabitDetailView(LoginRequiredMixin, DetailView):
 
 class HabitCreateView(LoginRequiredMixin, CreateView):
     model = Habit
-    fields = ["name", "description", "frequency", "category"]
+    form_class = HabitForm
     template_name = "tracker/habit_form.html"
-
-    def get_success_url(self):
-        return reverse('tracker:habit_list')
 
     def form_valid(self, form):
         form.instance.user = self.request.user
         return super().form_valid(form)
 
+    def get_success_url(self):
+        return reverse('tracker:habit_detail', kwargs={'pk': self.object.pk})
+
 class HabitUpdateView(LoginRequiredMixin, UpdateView):
     model = Habit
-    fields = ["name", "description", "frequency", "category"]
+    form_class = HabitForm
     template_name = "tracker/habit_form.html"
-
-    def get_success_url(self):
-        return reverse('social:dashboard', kwargs={'username': self.request.user.username})
 
     def get_queryset(self):
         return Habit.objects.filter(user=self.request.user)
+
+    def get_success_url(self):
+        return reverse('tracker:habit_detail', kwargs={'pk': self.object.pk})
 
 class HabitDeleteView(LoginRequiredMixin, DeleteView):
     model = Habit

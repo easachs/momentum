@@ -138,27 +138,35 @@ class Contact(models.Model):
         ('other', 'Other'),
     ]
 
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name='contacts'
-    )
-    name = models.CharField(max_length=100)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    name = models.CharField(max_length=255)
+    company = models.CharField(max_length=255, blank=True, null=True)
     role = models.CharField(
-        max_length=20,
+        max_length=50,
         choices=ROLE_CHOICES,
-        default='other'
+        default='hiring_manager'
     )
-    company = models.CharField(max_length=100)
-    email = models.EmailField(blank=True)
-    phone = models.CharField(max_length=20, blank=True)
+    email = models.EmailField(blank=True, null=True)
+    phone = models.CharField(max_length=20, blank=True, null=True)
     notes = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ['name']
-        unique_together = ['user', 'email']  # Prevent duplicate contacts
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'email'],
+                condition=models.Q(email__isnull=False),
+                name='unique_user_email_if_exists'
+            ),
+            models.UniqueConstraint(
+                fields=['user', 'phone'],
+                condition=models.Q(phone__isnull=False),
+                name='unique_user_phone_if_exists'
+            )
+        ]
 
     def __str__(self):
-        return f"{self.name} ({self.get_role_display()} at {self.company})"
+        company_str = f" at {self.company}" if self.company else ""
+        return f"{self.name} ({self.get_role_display()}{company_str})"
