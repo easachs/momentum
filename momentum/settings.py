@@ -58,6 +58,7 @@ INSTALLED_APPS = [
     "django_extensions",
     # Remove duplicate entries and use the Config classes
     "applications.apps.ApplicationsConfig",
+    "books.apps.BooksConfig",
     "habits.apps.HabitsConfig",
     "nutrition.apps.NutritionConfig",
     "social.apps.SocialConfig",
@@ -89,6 +90,7 @@ TEMPLATES = [
         "BACKEND": "django.template.backends.django.DjangoTemplates",
         "DIRS": [
             BASE_DIR / "applications" / "templates",
+            BASE_DIR / "books" / "templates",
             BASE_DIR / "habits" / "templates",
             BASE_DIR / "momentum" / "templates",
             BASE_DIR / "nutrition" / "templates",

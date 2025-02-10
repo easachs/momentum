@@ -35,6 +35,7 @@ urlpatterns = [
     path('accounts/', include('allauth.urls')),
     path('admin/', admin.site.urls),
     path('apps/', include('applications.urls')),
+    path('books/', include('books.urls')),
     path('habits/', include('habits.urls')),
     path('nutrition/', include('nutrition.urls')),
     path('', include('social.urls')),
