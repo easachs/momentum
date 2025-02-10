@@ -1,10 +1,13 @@
-from django.shortcuts import render
-from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
+from django.shortcuts import render, redirect
+from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView, FormView, View
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy
 from django.db.models import Sum
 from .models import Food, Weight
 from .forms import FoodForm, WeightForm
+from django.contrib import messages
+from django.utils import timezone
+from django.db.utils import IntegrityError
 
 # Create your views here.
 
@@ -18,10 +21,26 @@ class FoodListView(LoginRequiredMixin, ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['weight_form'] = WeightForm()
+        today = timezone.localtime(timezone.now()).date()
+        
+        # Get today's foods
+        todays_foods = Food.objects.filter(
+            user=self.request.user,
+            date=today
+        )
+        
+        # Calculate daily totals
+        context['daily_totals'] = {
+            'calories': todays_foods.aggregate(Sum('calories'))['calories__sum'] or 0,
+            'protein': todays_foods.aggregate(Sum('protein'))['protein__sum'] or 0,
+            'carbs': todays_foods.aggregate(Sum('carbs'))['carbs__sum'] or 0,
+        }
+        
+        context['weight_form'] = WeightForm(initial={'date': today})
         context['latest_weight'] = Weight.objects.filter(
             user=self.request.user
         ).first()
+        
         return context
 
 class FoodDetailView(LoginRequiredMixin, DetailView):
@@ -55,3 +74,29 @@ class FoodDeleteView(LoginRequiredMixin, DeleteView):
 
     def get_queryset(self):
         return Food.objects.filter(user=self.request.user)
+
+class WeightCreateView(LoginRequiredMixin, View):
+    def post(self, request):
+        date = request.POST.get('date')
+        weight = request.POST.get('weight')
+        
+        try:
+            # Try to get existing weight entry for this date
+            existing_weight = Weight.objects.get(
+                user=request.user,
+                date=date
+            )
+            # Update existing weight
+            existing_weight.weight = weight
+            existing_weight.save(update_fields=['weight', 'updated_at'])
+            messages.success(request, "Weight updated successfully.")
+        except Weight.DoesNotExist:
+            # Create new weight entry
+            Weight.objects.create(
+                user=request.user,
+                date=date,
+                weight=weight
+            )
+            messages.success(request, "Weight logged successfully.")
+            
+        return redirect('nutrition:food_list')

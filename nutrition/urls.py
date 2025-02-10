@@ -9,4 +9,5 @@ urlpatterns = [
     path('food/<int:pk>/', views.FoodDetailView.as_view(), name='food_detail'),
     path('food/<int:pk>/edit/', views.FoodUpdateView.as_view(), name='food_update'),
     path('food/<int:pk>/delete/', views.FoodDeleteView.as_view(), name='food_delete'),
+    path('weight/create/', views.WeightCreateView.as_view(), name='weight_create'),
 ]

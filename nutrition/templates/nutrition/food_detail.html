@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="py-8">
+    <div class="max-w-3xl mx-auto">
+        <div class="mb-6 flex justify-between items-center">
+            <h1 class="text-2xl font-bold">{{ food.name }}</h1>
+            <div class="space-x-2">
+                <a href="{% url 'nutrition:food_update' food.pk %}" 
+                   class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                    Edit
+                </a>
+                <a href="{% url 'nutrition:food_delete' food.pk %}" 
+                   class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">
+                    Delete
+                </a>
+            </div>
+        </div>
+
+        <div class="bg-white shadow rounded-lg p-6">
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <h2 class="text-sm font-medium text-gray-500">Date</h2>
+                    <p class="mt-1 text-lg">{{ food.date }}</p>
+                </div>
+                <div>
+                    <h2 class="text-sm font-medium text-gray-500">Calories</h2>
+                    <p class="mt-1 text-lg">{{ food.calories }}</p>
+                </div>
+                <div>
+                    <h2 class="text-sm font-medium text-gray-500">Protein</h2>
+                    <p class="mt-1 text-lg">{{ food.protein }}g</p>
+                </div>
+                <div>
+                    <h2 class="text-sm font-medium text-gray-500">Carbs</h2>
+                    <p class="mt-1 text-lg">{{ food.carbs }}g</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

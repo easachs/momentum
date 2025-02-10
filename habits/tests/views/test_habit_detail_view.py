@@ -78,14 +78,14 @@ class TestHabitDetailView(TestCase):
         )
         self.assertEqual(response.status_code, 200)
 
-        # Should show 3 completions out of 5 possible days (60%)
-        self.assertContains(response, "60.0%")
+        # Should show 3 completions out of 6 possible days (50%)
+        self.assertContains(response, "50.0%")
 
         # Verify the context data
         analytics = response.context["analytics"]
-        self.assertEqual(analytics["completion_rate"], 60.0)
+        self.assertEqual(analytics["completion_rate"], 50.0)
         self.assertEqual(analytics["total_completions"], 3)
-        self.assertEqual(analytics["total_possible"], 5)  # 5 days including today
+        self.assertEqual(analytics["total_possible"], 6)  # 6 days including today
 
     def test_habit_detail_view_unauthorized_access(self):
         """Test that users can't access other users' habits"""
