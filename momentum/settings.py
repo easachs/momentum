@@ -59,6 +59,7 @@ INSTALLED_APPS = [
     # Remove duplicate entries and use the Config classes
     "applications.apps.ApplicationsConfig",
     "habits.apps.HabitsConfig",
+    "nutrition.apps.NutritionConfig",
     "social.apps.SocialConfig",
 ]
 
@@ -87,8 +88,10 @@ TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
         "DIRS": [
-            BASE_DIR / "momentum" / "templates",
+            BASE_DIR / "applications" / "templates",
             BASE_DIR / "habits" / "templates",
+            BASE_DIR / "momentum" / "templates",
+            BASE_DIR / "nutrition" / "templates",
             BASE_DIR / "social" / "templates",
             BASE_DIR / "momentum" / "templates" / "allauth",
         ],

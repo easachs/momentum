@@ -36,6 +36,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('apps/', include('applications.urls')),
     path('habits/', include('habits.urls')),
+    path('nutrition/', include('nutrition.urls')),
     path('', include('social.urls')),
     path("__reload__/", include("django_browser_reload.urls")),
 ]

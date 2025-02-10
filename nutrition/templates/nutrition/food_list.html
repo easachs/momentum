@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="py-8">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold">Nutrition Tracking</h1>
+        <a href="{% url 'nutrition:food_create' %}" 
+           class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+            Add Food Entry
+        </a>
+    </div>
+
+    <!-- Weight Tracking Section -->
+    <div class="bg-white rounded-lg shadow p-6 mb-6">
+        <h2 class="text-xl font-semibold mb-4">Weight Tracking</h2>
+        {% if latest_weight %}
+            <p class="mb-4">Latest Weight: {{ latest_weight.weight }}lbs ({{ latest_weight.date }})</p>
+        {% endif %}
+        <form method="post" action="{% url 'nutrition:weight_create' %}" class="space-y-4">
+            {% csrf_token %}
+            {{ weight_form.as_p }}
+            <button type="submit" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
+                Log Weight
+            </button>
+        </form>
+    </div>
+
+    <!-- Food List -->
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Food</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Calories</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Protein</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Carbs</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for food in foods %}
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap">{{ food.date }}</td>
+                        <td class="px-6 py-4">{{ food.name }}</td>
+                        <td class="px-6 py-4">{{ food.calories }}</td>
+                        <td class="px-6 py-4">{{ food.protein }}g</td>
+                        <td class="px-6 py-4">{{ food.carbs }}g</td>
+                        <td class="px-6 py-4 space-x-2">
+                            <a href="{% url 'nutrition:food_update' food.pk %}" class="text-blue-600 hover:text-blue-900">Edit</a>
+                            <a href="{% url 'nutrition:food_delete' food.pk %}" class="text-red-600 hover:text-red-900">Delete</a>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="6" class="px-6 py-4 text-center text-gray-500">
+                            No food entries yet. Start by adding one!
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %} 
