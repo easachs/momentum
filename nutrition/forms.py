@@ -8,22 +8,42 @@ class FoodForm(forms.ModelForm):
         widgets = {
             'date': forms.DateInput(attrs={
                 'type': 'date',
-                'class': 'shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline'
+                'class': (
+                    'shadow appearance-none border rounded w-full py-2 px-3 '
+                    'text-gray-700 leading-tight focus:outline-none '
+                    'focus:shadow-outline'
+                ),
             }),
             'name': forms.TextInput(attrs={
-                'class': 'shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline',
+                'class': (
+                    'shadow appearance-none border rounded w-full py-2 px-3 '
+                    'text-gray-700 leading-tight focus:outline-none '
+                    'focus:shadow-outline'
+                ),
                 'placeholder': 'Food name'
             }),
             'calories': forms.NumberInput(attrs={
-                'class': 'shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline',
+                'class': (
+                    'shadow appearance-none border rounded w-full py-2 px-3 '
+                    'text-gray-700 leading-tight focus:outline-none '
+                    'focus:shadow-outline'
+                ),
                 'placeholder': 'Calories'
             }),
             'protein': forms.NumberInput(attrs={
-                'class': 'shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline',
+                'class': (
+                    'shadow appearance-none border rounded w-full py-2 px-3 '
+                    'text-gray-700 leading-tight focus:outline-none '
+                    'focus:shadow-outline'
+                ),
                 'placeholder': 'Protein (g)'
             }),
             'carbs': forms.NumberInput(attrs={
-                'class': 'shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline',
+                'class': (
+                    'shadow appearance-none border rounded w-full py-2 px-3 '
+                    'text-gray-700 leading-tight focus:outline-none '
+                    'focus:shadow-outline'
+                ),
                 'placeholder': 'Carbs (g)'
             })
         }
@@ -35,10 +55,18 @@ class WeightForm(forms.ModelForm):
         widgets = {
             'date': forms.DateInput(attrs={
                 'type': 'date',
-                'class': 'shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline'
+                'class': (
+                    'shadow appearance-none border rounded w-full py-2 px-3 '
+                    'text-gray-700 leading-tight focus:outline-none '
+                    'focus:shadow-outline'
+                ),
             }),
             'weight': forms.NumberInput(attrs={
-                'class': 'shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline',
+                'class': (
+                    'shadow appearance-none border rounded w-full py-2 px-3 '
+                    'text-gray-700 leading-tight focus:outline-none '
+                    'focus:shadow-outline'
+                ),
                 'placeholder': 'Weight (lbs)'
             })
         } 
