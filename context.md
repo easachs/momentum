@@ -10,7 +10,7 @@ Momentum is a habit and job application tracker built using Django. It helps use
 - Dashboard visualization of habit progress.
 - Habit streak tracking.
 
-###	`jobhunt` app: Focused on managing job applications and professional networking:
+###	`applications` app: Focused on managing job applications and professional networking:
 - CRUD operations for job applications and contacts.
 - Analytics dashboard to track application statuses (e.g., total applications, interviews scheduled).
 - Badges for milestones like submitting 5/10/20 applications, receiving 1/5/10 interviews, adding a contact.

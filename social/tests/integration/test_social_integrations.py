@@ -10,7 +10,7 @@ from concurrent.futures import ThreadPoolExecutor
 from django.test.utils import CaptureQueriesContext
 from django.db import connection
 from unittest import mock
-from jobhunt.models import Application
+from applications.models import Application
 
 class TestSocialIntegrations(TestCase):
     def setUp(self):

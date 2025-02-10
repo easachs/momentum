@@ -90,7 +90,7 @@ A Django-based application that helps users build positive habits while managing
 ## Project Structure
 
 - `habits/`: Main habit tracking functionality
-- `jobhunt/`: Job application management
+- `applications/`: Job application management
 - `social/`: Friend connections and social features
 - `theme/`: Tailwind configuration and styling
 

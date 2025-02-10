@@ -1,7 +1,7 @@
 from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth import get_user_model
-from jobhunt.models import Application
+from applications.models import Application
 
 class ApplicationIntegrationTests(TestCase):
     def setUp(self):
@@ -16,7 +16,7 @@ class ApplicationIntegrationTests(TestCase):
         # Test the complete lifecycle of an application
         # Create application
         response = self.client.post(
-            reverse('jobhunt:application_create'),
+            reverse('applications:application_create'),
             {
                 'company': 'Lifecycle Company',
                 'title': 'Lifecycle Position',
@@ -35,7 +35,7 @@ class ApplicationIntegrationTests(TestCase):
 
         # Update status to applied
         response = self.client.post(
-            reverse('jobhunt:application_update', kwargs={'pk': application.pk}),
+            reverse('applications:application_update', kwargs={'pk': application.pk}),
             {
                 'company': 'Lifecycle Company',
                 'title': 'Lifecycle Position',
@@ -54,7 +54,7 @@ class ApplicationIntegrationTests(TestCase):
 
         # Delete application
         response = self.client.post(
-            reverse('jobhunt:application_delete', kwargs={'pk': application.pk})
+            reverse('applications:application_delete', kwargs={'pk': application.pk})
         )
         self.assertEqual(response.status_code, 302)
         self.assertFalse(

@@ -34,7 +34,7 @@ urlpatterns = [
     path('accounts/google/login/callback/', oauth2_callback, name='google_oauth2_callback'),
     path('accounts/', include('allauth.urls')),
     path('admin/', admin.site.urls),
-    path('apps/', include('jobhunt.urls')),
+    path('apps/', include('applications.urls')),
     path('habits/', include('habits.urls')),
     path('', include('social.urls')),
     path("__reload__/", include("django_browser_reload.urls")),

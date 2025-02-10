@@ -10,7 +10,7 @@ from django.views.generic import DetailView, View
 from habits.models import Habit, HabitCompletion, AIHabitSummary
 from social.services.badges.badge_service import BadgeService
 from social.models import Friendship, Badge
-from jobhunt.models import Application
+from applications.models import Application
 
 class DashboardView(LoginRequiredMixin, DetailView):
     model = get_user_model()

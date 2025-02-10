@@ -1,9 +1,9 @@
 from django.apps import AppConfig
 
 
-class JobhuntConfig(AppConfig):
+class ApplicationsConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
-    name = "jobhunt"
+    name = "applications"
 
     def ready(self):
-        import jobhunt.signals
+        import applications.signals

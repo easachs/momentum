@@ -57,7 +57,7 @@ INSTALLED_APPS = [
     "widget_tweaks",
     "django_extensions",
     # Remove duplicate entries and use the Config classes
-    "jobhunt.apps.JobhuntConfig",
+    "applications.apps.ApplicationsConfig",
     "habits.apps.HabitsConfig",
     "social.apps.SocialConfig",
 ]

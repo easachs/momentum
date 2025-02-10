@@ -7,7 +7,7 @@ from django.db import connection
 from social.models import Friendship, Badge
 from habits.models import Habit, HabitCompletion
 from social.services.badges.badge_service import BadgeService
-from jobhunt.models import Application, Contact
+from applications.models import Application, Contact
 
 class TestBadgeService(TestCase):
     def setUp(self):

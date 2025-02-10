@@ -5,7 +5,7 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 from habits.models import Habit, HabitCompletion, AIHabitSummary
 from habits.services.ai.ai_service import AIHabitService
-from jobhunt.models import Application
+from applications.models import Application
 
 class TestAIHabitService(TestCase):
     def setUp(self):

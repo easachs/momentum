@@ -2,7 +2,7 @@ from datetime import date
 from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth import get_user_model
-from jobhunt.models import Application
+from applications.models import Application
 
 class TestApplicationUpdateView(TestCase):
     def setUp(self):
@@ -22,7 +22,7 @@ class TestApplicationUpdateView(TestCase):
 
     def test_update_view(self):
         response = self.client.post(
-            reverse("jobhunt:application_update", kwargs={"pk": self.application.pk}),
+            reverse("applications:application_update", kwargs={"pk": self.application.pk}),
             {
                 "company": "Updated Company",
                 "title": "Updated Position",

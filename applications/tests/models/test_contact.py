@@ -1,7 +1,7 @@
 from django.test import TransactionTestCase
 from django.contrib.auth import get_user_model
 from django.db import IntegrityError
-from jobhunt.models import Contact
+from applications.models import Contact
 
 class ContactModelTests(TransactionTestCase):
     def setUp(self):

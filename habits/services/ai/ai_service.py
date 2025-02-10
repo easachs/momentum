@@ -4,7 +4,7 @@ from datetime import timedelta
 from openai import OpenAI
 from django.utils import timezone
 from habits.models import AIHabitSummary
-from jobhunt.models import Application
+from applications.models import Application
 
 logger = logging.getLogger(__name__)
 

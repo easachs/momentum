@@ -10,7 +10,7 @@ from .forms import ApplicationForm, ContactForm
 
 class ApplicationListView(LoginRequiredMixin, ListView):
     model = Application
-    template_name = 'jobhunt/application_list.html'
+    template_name = 'applications/application_list.html'
     context_object_name = 'applications'
 
     def get_queryset(self):
@@ -36,7 +36,7 @@ class ApplicationListView(LoginRequiredMixin, ListView):
 
 class ApplicationDetailView(DetailView):
     model = Application
-    template_name = 'jobhunt/application_detail.html'
+    template_name = 'applications/application_detail.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -45,7 +45,7 @@ class ApplicationDetailView(DetailView):
 
 class ApplicationCreateView(LoginRequiredMixin, CreateView):
     model = Application
-    template_name = 'jobhunt/application_form.html'
+    template_name = 'applications/application_form.html'
     form_class = ApplicationForm
 
     def form_valid(self, form):
@@ -57,11 +57,11 @@ class ApplicationCreateView(LoginRequiredMixin, CreateView):
         return response
 
     def get_success_url(self):
-        return reverse('jobhunt:application_detail', kwargs={'pk': self.object.pk})
+        return reverse('applications:application_detail', kwargs={'pk': self.object.pk})
 
 class ApplicationUpdateView(LoginRequiredMixin, UpdateView):
     model = Application
-    template_name = 'jobhunt/application_form.html'
+    template_name = 'applications/application_form.html'
     form_class = ApplicationForm
 
     def get_queryset(self):
@@ -75,12 +75,12 @@ class ApplicationUpdateView(LoginRequiredMixin, UpdateView):
         return response
 
     def get_success_url(self):
-        return reverse('jobhunt:application_detail', kwargs={'pk': self.object.pk})
+        return reverse('applications:application_detail', kwargs={'pk': self.object.pk})
 
 class ApplicationDeleteView(LoginRequiredMixin, DeleteView):
     model = Application
-    template_name = 'jobhunt/application_confirm_delete.html'
-    success_url = reverse_lazy('jobhunt:application_list')
+    template_name = 'applications/application_confirm_delete.html'
+    success_url = reverse_lazy('applications:application_list')
 
     def get_queryset(self):
         return Application.objects.filter(user=self.request.user)
@@ -88,8 +88,8 @@ class ApplicationDeleteView(LoginRequiredMixin, DeleteView):
 class ContactCreateView(LoginRequiredMixin, CreateView):
     model = Contact
     form_class = ContactForm
-    template_name = 'jobhunt/contact_form.html'
-    success_url = reverse_lazy('jobhunt:application_list')
+    template_name = 'applications/contact_form.html'
+    success_url = reverse_lazy('applications:application_list')
 
     def form_valid(self, form):
         form.instance.user = self.request.user
@@ -109,23 +109,23 @@ class ContactCreateView(LoginRequiredMixin, CreateView):
 class ContactUpdateView(LoginRequiredMixin, UpdateView):
     model = Contact
     form_class = ContactForm
-    template_name = 'jobhunt/contact_form.html'
-    success_url = reverse_lazy('jobhunt:application_list')
+    template_name = 'applications/contact_form.html'
+    success_url = reverse_lazy('applications:application_list')
 
     def get_queryset(self):
         return Contact.objects.filter(user=self.request.user)
 
 class ContactDeleteView(LoginRequiredMixin, DeleteView):
     model = Contact
-    template_name = 'jobhunt/contact_confirm_delete.html'
-    success_url = reverse_lazy('jobhunt:application_list')
+    template_name = 'applications/contact_confirm_delete.html'
+    success_url = reverse_lazy('applications:application_list')
 
     def get_queryset(self):
         return Contact.objects.filter(user=self.request.user)
 
 class ContactDetailView(LoginRequiredMixin, DetailView):
     model = Contact
-    template_name = 'jobhunt/contact_detail.html'
+    template_name = 'applications/contact_detail.html'
 
     def get_queryset(self):
         return Contact.objects.filter(user=self.request.user)

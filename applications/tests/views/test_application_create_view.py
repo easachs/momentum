@@ -1,7 +1,7 @@
 from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth import get_user_model
-from jobhunt.models import Application
+from applications.models import Application
 
 class TestApplicationCreateView(TestCase):
     def setUp(self):
@@ -13,7 +13,7 @@ class TestApplicationCreateView(TestCase):
 
     def test_create_view(self):
         response = self.client.post(
-            reverse("jobhunt:application_create"),
+            reverse("applications:application_create"),
             {
                 "company": "New Company",
                 "title": "New Position",

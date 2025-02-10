@@ -2,7 +2,7 @@ from datetime import date
 from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth import get_user_model
-from jobhunt.models import Application
+from applications.models import Application
 
 class TestApplicationListView(TestCase):
     def setUp(self):
@@ -21,9 +21,9 @@ class TestApplicationListView(TestCase):
         )
 
     def test_application_list_view(self):
-        response = self.client.get(reverse("jobhunt:application_list"))
+        response = self.client.get(reverse("applications:application_list"))
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, "jobhunt/application_list.html")
+        self.assertTemplateUsed(response, "applications/application_list.html")
         self.assertContains(response, "Test Company")
 
     def test_application_list_view_filtering(self):
@@ -34,7 +34,7 @@ class TestApplicationListView(TestCase):
 
         # Test filtering by status
         response = self.client.get(
-            reverse("jobhunt:application_list") + "?status=wishlist"
+            reverse("applications:application_list") + "?status=wishlist"
         )
         self.assertEqual(len(response.context["applications"]), 1)
         self.assertContains(response, "Company A")
@@ -50,7 +50,7 @@ class TestApplicationListView(TestCase):
         )
 
         # Test sorting by due date
-        response = self.client.get(reverse("jobhunt:application_list") + "?sort=due")
+        response = self.client.get(reverse("applications:application_list") + "?sort=due")
         applications = list(response.context["applications"])
         self.assertTrue(applications[0].due <= applications[1].due)
 
@@ -74,13 +74,13 @@ class TestApplicationListView(TestCase):
 
         # Test status filtering
         response = self.client.get(
-            reverse("jobhunt:application_list") + "?status=wishlist"
+            reverse("applications:application_list") + "?status=wishlist"
         )
         self.assertEqual(len(response.context["applications"]), 1)
         self.assertContains(response, "Company A")
 
         # Test sorting by due date
-        response = self.client.get(reverse("jobhunt:application_list"))
+        response = self.client.get(reverse("applications:application_list"))
         applications = list(response.context["applications"])
         self.assertTrue(applications[0].due <= applications[1].due)
 
@@ -103,7 +103,7 @@ class TestApplicationListView(TestCase):
         # Test filtering by each status
         for status in ["wishlist", "applied", "interviewing"]:
             response = self.client.get(
-                f"{reverse('jobhunt:application_list')}?status={status}"
+                f"{reverse('applications:application_list')}?status={status}"
             )
             self.assertEqual(len(response.context["applications"]), 1)
             self.assertContains(
@@ -112,7 +112,7 @@ class TestApplicationListView(TestCase):
             )
 
         # Test different sort orders
-        response = self.client.get(f"{reverse('jobhunt:application_list')}?sort=due")
+        response = self.client.get(f"{reverse('applications:application_list')}?sort=due")
         apps = list(response.context["applications"])
         self.assertEqual(len(apps), 3)
         self.assertTrue(
