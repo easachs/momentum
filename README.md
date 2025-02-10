@@ -44,7 +44,7 @@ A Django-based application that helps users build positive habits while managing
 
 - **Backend**: Django 5.1.5
 - **Frontend**: Tailwind CSS
-- **Database**: SQLite (PostgreSQL ready)
+- **Database**: Postgres
 - **Authentication**: Google OAuth
 - **AI Integration**: OpenAI API
 - **Testing**: Pytest

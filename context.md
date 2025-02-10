@@ -47,7 +47,7 @@ Momentum is a habit and job application tracker built using Django. It helps use
 ## Stack
 - Django
 - Tailwind CSS
-- SQLite (plan to switch to Postgres)
+- Postgres
 - Pytest
 
 ## Coding Preferences:
