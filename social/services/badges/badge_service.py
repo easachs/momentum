@@ -2,7 +2,7 @@ import logging
 from django.db.models import Q, Count, Exists
 from django.utils import timezone
 from social.models import Badge
-from tracker.models import Habit, HabitCompletion
+from habits.models import Habit, HabitCompletion
 from jobhunt.models import Application, Contact
 
 logger = logging.getLogger(__name__)

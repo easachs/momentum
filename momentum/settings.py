@@ -58,7 +58,7 @@ INSTALLED_APPS = [
     "django_extensions",
     # Remove duplicate entries and use the Config classes
     "jobhunt.apps.JobhuntConfig",
-    "tracker.apps.TrackerConfig",
+    "habits.apps.HabitsConfig",
     "social.apps.SocialConfig",
 ]
 
@@ -88,7 +88,7 @@ TEMPLATES = [
         "BACKEND": "django.template.backends.django.DjangoTemplates",
         "DIRS": [
             BASE_DIR / "momentum" / "templates",
-            BASE_DIR / "tracker" / "templates",
+            BASE_DIR / "habits" / "templates",
             BASE_DIR / "social" / "templates",
             BASE_DIR / "momentum" / "templates" / "allauth",
         ],
@@ -227,7 +227,7 @@ if DEBUG:
             'level': 'INFO',
         },
         'loggers': {
-            'tracker': {
+            'habits': {
                 'handlers': ['console'],
                 'level': 'INFO',
                 'propagate': True,

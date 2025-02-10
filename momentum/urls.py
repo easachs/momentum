@@ -20,7 +20,7 @@ from django.urls import include, path
 from django.shortcuts import redirect
 from django.conf import settings
 from allauth.socialaccount.providers.google.views import oauth2_login, oauth2_callback
-from tracker.views import root_redirect
+from habits.views import root_redirect
 
 # Redirect admin login to Google OAuth
 admin.site.login = lambda request, **kwargs: redirect('google_oauth2_login')
@@ -35,7 +35,7 @@ urlpatterns = [
     path('accounts/', include('allauth.urls')),
     path('admin/', admin.site.urls),
     path('apps/', include('jobhunt.urls')),
-    path('habits/', include('tracker.urls')),
+    path('habits/', include('habits.urls')),
     path('', include('social.urls')),
     path("__reload__/", include("django_browser_reload.urls")),
 ]

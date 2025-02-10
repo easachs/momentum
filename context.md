@@ -5,7 +5,7 @@ Momentum is a habit and job application tracker built using Django. It helps use
 
 ## Structure
 
-### `tracker` app: Manages all habit-related functionality, including:
+### `habits` app: Manages all habit-related functionality, including:
 - Habit creation and management (CRUD operations).
 - Dashboard visualization of habit progress.
 - Habit streak tracking.

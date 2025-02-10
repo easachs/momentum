@@ -2,7 +2,7 @@ from django.test import TestCase, TransactionTestCase
 from django.urls import reverse
 from django.contrib.auth import get_user_model
 from social.models import Friendship
-from tracker.models import Habit, HabitCompletion
+from habits.models import Habit, HabitCompletion
 from django.utils import timezone
 from datetime import timedelta
 from django.db import transaction

@@ -5,7 +5,7 @@ from django.contrib.auth import get_user_model
 from django.test.utils import CaptureQueriesContext
 from django.db import connection
 from social.models import Friendship, Badge
-from tracker.models import Habit, HabitCompletion
+from habits.models import Habit, HabitCompletion
 from social.services.badges.badge_service import BadgeService
 from jobhunt.models import Application, Contact
 

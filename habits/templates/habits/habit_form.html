@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% load widget_tweaks %}
+
+{% block content %}
+<div class="py-8">
+    <div class="bg-white rounded-lg shadow p-6">
+        <h1 class="text-2xl font-bold mb-6">
+            {% if form.instance.pk %}
+                Edit Habit
+            {% else %}
+                New Habit
+            {% endif %}
+        </h1>
+
+        <form method="post" class="space-y-4">
+            {% csrf_token %}
+            
+            {% for field in form %}
+                <div class="mb-4">
+                    <label for="{{ field.id_for_label }}" class="block text-gray-700 text-sm font-bold mb-2">
+                        {{ field.label }}
+                    </label>
+                    {% if field.errors %}
+                        <div class="text-red-500 text-sm mb-2">
+                            {{ field.errors|join:", " }}
+                        </div>
+                    {% endif %}
+                    {{ field|add_class:"shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" }}
+                    {% if field.help_text %}
+                        <p class="mt-1 text-sm text-gray-500">{{ field.help_text }}</p>
+                    {% endif %}
+                </div>
+            {% endfor %}
+
+            <div class="flex justify-between items-center pt-4">
+                <a href="{% url 'habits:habit_list' %}" 
+                   class="text-blue-600 hover:text-blue-800">
+                    Cancel
+                </a>
+                <button type="submit" 
+                        class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                    {% if form.instance.pk %}
+                        Update Habit
+                    {% else %}
+                        Create Habit
+                    {% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

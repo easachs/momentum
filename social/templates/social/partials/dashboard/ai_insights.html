@@ -34,7 +34,7 @@ document.getElementById('generate-summary')?.addEventListener('click', async fun
     
     try {
         const response = await fetch(
-            "{% url 'tracker:generate_ai_summary' %}",
+            "{% url 'habits:generate_ai_summary' %}",
             {
                 method: 'POST',
                 headers: {

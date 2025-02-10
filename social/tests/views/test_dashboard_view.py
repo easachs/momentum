@@ -4,7 +4,7 @@ from django.urls import reverse
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from social.models import Friendship
-from tracker.models import Habit, HabitCompletion
+from habits.models import Habit, HabitCompletion
 from unittest import mock
 from django.db import connection
 from django.test.utils import CaptureQueriesContext

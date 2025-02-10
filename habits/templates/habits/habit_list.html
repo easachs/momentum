@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+{% load math.filters %}
+
+{% block content %}
+<div class="py-8">
+    <!-- Only show habits if user is viewing their own profile or is friends -->
+    {% if user == viewed_user or friendship.status == 'accepted' %}
+        {% include 'habits/partials/habit_list/notifications.html' with notifications=notifications %}
+        {% include 'habits/partials/habit_list/view_toggle.html' with view_mode=view_mode %}
+
+        {% if view_mode == 'category' %}
+            <!-- Category View -->
+            {% for category, data in categorized_habits.items %}
+                {% if data.habits %}
+                    <h2 class="text-2xl font-semibold {% if not forloop.first %}mt-8{% endif %} mb-4">
+                        {{ data.label }}
+                    </h2>
+                    <ul class="space-y-4">
+                        {% for habit in data.habits %}
+                            {% include 'habits/partials/habit_list/habit_card.html' with habit=habit user=user viewed_user=viewed_user %}
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            {% endfor %}
+            {% with has_habits=False %}
+                {% for category, data in categorized_habits.items %}
+                    {% if data.habits %}
+                        {% with has_habits=True %}{% endwith %}
+                    {% endif %}
+                {% endfor %}
+                {% if not has_habits %}
+                    <p class="text-gray-600 text-center py-8">No habits yet.</p>
+                {% endif %}
+            {% endwith %}
+        {% else %}
+            <!-- Frequency View -->
+            {% if daily_habits %}
+                <h2 class="text-2xl font-semibold mb-4">Daily</h2>
+                <ul class="space-y-4">
+                    {% for habit in daily_habits %}
+                        {% include 'habits/partials/habit_list/habit_card.html' with habit=habit user=user viewed_user=viewed_user %}
+                    {% endfor %}
+                </ul>
+            {% endif %}
+
+            {% if weekly_habits %}
+                <h2 class="text-2xl font-semibold mt-8 mb-4">Weekly</h2>
+                <ul class="space-y-4">
+                    {% for habit in weekly_habits %}
+                        {% include 'habits/partials/habit_list/habit_card.html' with habit=habit user=user viewed_user=viewed_user %}
+                    {% endfor %}
+                </ul>
+            {% endif %}
+            {% if not daily_habits and not weekly_habits %}
+                <p class="text-gray-600 text-center py-8">No habits yet.</p>
+            {% endif %}
+        {% endif %}
+
+        {% include 'habits/partials/habit_list/category_filter.html' with habit_categories=habit_categories %}
+        {% include 'social/partials/dashboard/action_buttons.html' %}
+    {% endif %}
+</div>
+{% endblock %}
